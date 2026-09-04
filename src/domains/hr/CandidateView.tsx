@@ -1,4 +1,5 @@
-import { UserRound, ClipboardCheck, Scale, CheckCircle2, MinusCircle } from 'lucide-react'
+import { UserRound, ClipboardCheck, Scale, CheckCircle2, MinusCircle, Mail, Phone, Globe, MapPin } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useSim } from '@/engine/store'
 import { StatusDot } from '@/components/ui'
 import { cn } from '@/lib/cn'
@@ -11,6 +12,160 @@ const STAGE_LABEL: Record<string, string> = {
   interview: 'Structured interview',
   compare: 'Comparing & ranking',
   done: 'Assessed · ranked',
+}
+
+function initialsOf(name: string) {
+  const p = name.trim().split(/\s+/)
+  return ((p[0]?.[0] ?? '') + (p[p.length - 1]?.[0] ?? '')).toUpperCase()
+}
+
+function Sec({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <h4 className="mb-1 border-b border-[#d8d2c1] pb-0.5 text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[#2f7d7d]">
+        {title}
+      </h4>
+      {children}
+    </section>
+  )
+}
+
+/** LinkedIn-style résumé facsimile — the source document the screener reads. */
+function ResumeDoc({
+  d,
+  scanPct,
+  matchedActive,
+}: {
+  d: CandidateData
+  scanPct: number | null
+  matchedActive: boolean
+}) {
+  return (
+    <div className="overflow-hidden rounded-[3px] bg-[#f6f4ec] text-[#23262d] shadow-[0_6px_20px_rgba(0,0,0,0.45)] ring-1 ring-black/25">
+      <div className="relative">
+        {scanPct != null && (
+          <div
+            className="pointer-events-none absolute inset-x-0 z-10 h-9"
+            style={{
+              top: `calc(${Math.min(scanPct, 0.98) * 100}% - 18px)`,
+              background:
+                'linear-gradient(180deg, rgba(47,125,125,0) 0%, rgba(47,125,125,0.5) 50%, rgba(47,125,125,0) 100%)',
+              mixBlendMode: 'multiply',
+            }}
+          />
+        )}
+
+        {/* header band */}
+        <div className="flex items-center gap-3 bg-[#2f7d7d] px-4 py-3 text-white">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white/15 text-[1.05rem] font-semibold ring-2 ring-white/40">
+            {initialsOf(d.name)}
+          </div>
+          <div className="min-w-0">
+            <div className="text-[1.05rem] font-bold leading-tight tracking-tight">{d.name}</div>
+            <div className="text-[0.8rem] text-white/85">{d.headline}</div>
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.66rem] text-white/75">
+              <span className="flex items-center gap-1">
+                <Mail size={10} /> {d.contact.email}
+              </span>
+              <span className="flex items-center gap-1">
+                <Phone size={10} /> {d.contact.phone}
+              </span>
+              <span className="flex items-center gap-1">
+                <Globe size={10} /> {d.contact.linkedin}
+              </span>
+              <span className="flex items-center gap-1">
+                <MapPin size={10} /> {d.location}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* body */}
+        <div className="grid gap-4 p-4 sm:grid-cols-[1.6fr_1fr]">
+          {/* main column */}
+          <div className="space-y-3">
+            <Sec title="Profile">
+              <p className="text-[0.75rem] leading-relaxed text-[#3a3e47]">{d.summary}</p>
+            </Sec>
+
+            <Sec title="Experience">
+              {d.experience.map((e, i) => (
+                <div key={`${e.company}-${i}`} className="mb-2.5 last:mb-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[0.82rem] font-semibold text-[#1c1f26]">{e.title}</span>
+                    <span className="shrink-0 text-[0.64rem] tabular-nums text-[#8a8f9c]">
+                      {e.start} – {e.end}
+                    </span>
+                  </div>
+                  <div className="text-[0.72rem] font-medium italic text-[#2f7d7d]">{e.company}</div>
+                  <ul className="mt-1 space-y-0.5">
+                    {e.bullets.map((b) => (
+                      <li key={b} className="flex gap-1.5 text-[0.72rem] leading-snug text-[#3a3e47]">
+                        <span className="mt-[0.4rem] h-1 w-1 shrink-0 rounded-full bg-[#2f7d7d]" />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </Sec>
+
+            <Sec title="Education">
+              <div className="text-[0.8rem] font-semibold text-[#1c1f26]">{d.education}</div>
+              <div className="text-[0.7rem] text-[#8a8f9c]">Graduated {d.eduYear}</div>
+            </Sec>
+          </div>
+
+          {/* sidebar */}
+          <div className="space-y-3 sm:border-l sm:border-[#d8d2c1] sm:pl-3">
+            <Sec title="Skills">
+              {d.skills.map((s) => {
+                const lvl = d.skillLevels[s] ?? 60
+                const hit = matchedActive && d.screen.matched.includes(s)
+                return (
+                  <div key={s} className="mb-1 last:mb-0">
+                    <div className="flex justify-between text-[0.67rem]">
+                      <span className={hit ? 'font-semibold text-[#1c6b52]' : 'text-[#3a3e47]'}>
+                        {s}
+                        {hit ? ' ✓' : ''}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 h-1.5 rounded-full bg-[#e2ddce]">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${lvl}%`, background: hit ? '#3f9e79' : '#2f7d7d' }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </Sec>
+
+            <Sec title="Languages">
+              <div className="space-y-0.5">
+                {d.languages.map((l) => (
+                  <div key={l.name} className="flex justify-between gap-2 text-[0.7rem]">
+                    <span className="text-[#1c1f26]">{l.name}</span>
+                    <span className="text-right text-[#8a8f9c]">{l.level}</span>
+                  </div>
+                ))}
+              </div>
+            </Sec>
+
+            <Sec title="Interests">
+              <div className="flex flex-wrap gap-1">
+                {d.interests.map((i) => (
+                  <span key={i} className="rounded bg-[#ece7d8] px-1.5 py-0.5 text-[0.65rem] text-[#3a3e47]">
+                    {i}
+                  </span>
+                ))}
+              </div>
+            </Sec>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function CandidateView() {
@@ -44,6 +199,7 @@ export default function CandidateView() {
   const showScreen = reveal > 0.33
   const showInterview = reveal > 0.66
   const showCompare = reveal >= 1
+  const scanPct = active && item.stage === 'screen' ? item.progress : null
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -58,45 +214,8 @@ export default function CandidateView() {
       </div>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto scroll-thin p-3">
-        <div className="grid gap-3 lg:grid-cols-2">
-          {/* profile */}
-          <div className="rounded-lg border border-edge-soft bg-bg-2/40 p-2.5">
-            <div className="mb-2 flex items-center gap-1.5 text-[0.74rem] uppercase tracking-wide text-dim">
-              <UserRound size={12} /> Candidate profile
-            </div>
-            <div className="text-[0.95rem] font-semibold text-txt">{d.name}</div>
-            <div className="text-[0.8rem] text-dim">
-              {d.currentTitle} · {d.years} yrs · {d.location}
-            </div>
-            <div className="mt-1 text-[0.8rem] text-dim">{d.education}</div>
-            <div className="mt-2 text-[0.6rem] uppercase tracking-wide text-faint">Applying for</div>
-            <div className="text-[0.84rem] text-txt/90">{d.role}</div>
-            <div className="mt-2 text-[0.6rem] uppercase tracking-wide text-faint">Skills</div>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {d.skills.map((s) => (
-                <span
-                  key={s}
-                  className={cn(
-                    'rounded px-1.5 py-0.5 text-[0.72rem] ring-1 ring-inset',
-                    showScreen && d.screen.matched.includes(s)
-                      ? 'bg-teal/10 text-teal ring-teal/30'
-                      : 'bg-white/[0.03] text-dim ring-edge-soft',
-                  )}
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
-            <div className="mt-2 text-[0.6rem] uppercase tracking-wide text-faint">Highlights</div>
-            <ul className="mt-1 space-y-0.5">
-              {d.highlights.map((h) => (
-                <li key={h} className="flex gap-1.5 text-[0.8rem] text-txt/80">
-                  <span className="mt-[0.45rem] h-1 w-1 shrink-0 rounded-full bg-dim" />
-                  {h}
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <ResumeDoc d={d} scanPct={scanPct} matchedActive={showScreen} />
 
           {/* assessment */}
           <div className="space-y-3">

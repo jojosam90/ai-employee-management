@@ -1,6 +1,14 @@
 import type { WorkItem, DomainReport } from '../config'
 import { mulberry32, pickOne } from '../rng'
 
+export interface ExperienceEntry {
+  company: string
+  title: string
+  start: string
+  end: string
+  bullets: string[]
+}
+
 export interface CandidateData {
   ref: string
   name: string
@@ -8,10 +16,19 @@ export interface CandidateData {
   seniority: string
   years: number
   currentTitle: string
+  company: string
+  headline: string
+  summary: string
   location: string
   education: string
+  eduYear: string
   skills: string[]
+  skillLevels: Record<string, number>
   highlights: string[]
+  experience: ExperienceEntry[]
+  languages: { name: string; level: string }[]
+  interests: string[]
+  contact: { email: string; phone: string; linkedin: string }
   appliedAt: string
   screen: { jdMatch: number; matched: string[]; missing: string[]; verdict: string }
   interview: { scores: { area: string; score: number }[]; overall: number; note: string }
@@ -49,18 +66,15 @@ const ROLES: RoleDef[] = [
 const FIRST = ['Amara', 'Wei', 'Lucas', 'Nadia', 'Kenji', 'Isabel', 'Omar', 'Freya', 'Rahul', 'Chloe', 'Mateo', 'Yuki', 'Hannah', 'Diego']
 const LAST = ['Okonkwo', 'Zhang', 'Muller', 'Haddad', 'Tanaka', 'Costa', 'Farah', 'Lindqvist', 'Iyer', 'Byrne', 'Rivera', 'Sato', 'Novak', 'Mensah']
 const CITIES = ['Singapore', 'Remote (SGT)', 'Kuala Lumpur', 'Jakarta', 'Sydney', 'Bengaluru']
-const EDU = [
-  'BSc Computer Science',
-  'MSc Human–Computer Interaction',
-  'BEng Software Engineering',
-  'BA Design',
-  'BSc Statistics',
-  'MSc Data Science',
-  'Bootcamp + 4y industry',
-]
-const TITLES: Record<string, string[]> = {
-  senior: ['Senior Engineer', 'Staff Engineer', 'Tech Lead', 'Backend Engineer II'],
-  mid: ['Product Designer', 'Data Analyst', 'UX Designer', 'Analytics Engineer', 'Engineer'],
+const EDU_BY_ROLE: Record<string, string[]> = {
+  'Senior Backend Engineer': ['BSc Computer Science', 'BEng Software Engineering', 'MSc Distributed Systems'],
+  'Product Designer': ['BA Design', 'BFA Interaction Design', 'MSc Human–Computer Interaction'],
+  'Data Analyst': ['BSc Statistics', 'BSc Economics', 'MSc Data Science'],
+}
+const CURRENT_TITLE_BY_ROLE: Record<string, string[]> = {
+  'Senior Backend Engineer': ['Senior Backend Engineer', 'Staff Engineer', 'Backend Engineer II', 'Tech Lead'],
+  'Product Designer': ['Product Designer', 'Senior Product Designer', 'UX Designer'],
+  'Data Analyst': ['Data Analyst', 'Senior Data Analyst', 'Analytics Engineer'],
 }
 const HL_POOL = [
   'Led a migration that cut infra cost 28%',
@@ -74,6 +88,66 @@ const HL_POOL = [
   'Presented quarterly metrics to the exec team',
   'Reduced p95 latency by 40% on the core API',
 ]
+
+const COMPANIES = [
+  'Northwind Labs', 'Meridian Systems', 'BluePeak', 'Cadence Retail', 'Harbor Analytics',
+  'Volta Payments', 'Kirin Media', 'Evergreen Health', 'Aster Mobility', 'Lumen Cloud',
+  'Foundry Digital', 'Beacon Financial', 'Tessellate', 'Parallel Works',
+]
+
+const LANG_POOL = [
+  { name: 'Mandarin', level: 'Professional' },
+  { name: 'Malay', level: 'Professional' },
+  { name: 'Japanese', level: 'Conversational' },
+  { name: 'Spanish', level: 'Conversational' },
+  { name: 'Hindi', level: 'Professional' },
+  { name: 'German', level: 'Elementary' },
+  { name: 'French', level: 'Elementary' },
+]
+
+const INTEREST_POOL = [
+  'Trail running', 'Chess', 'Photography', 'Open-source', 'Cooking', 'Cycling',
+  'Board games', 'Live music', 'Hiking', 'Ceramics', 'Football', 'Bouldering',
+]
+
+const EXP_TITLES: Record<string, string[]> = {
+  'Senior Backend Engineer': ['Senior Backend Engineer', 'Software Engineer', 'Junior Developer'],
+  'Product Designer': ['Product Designer', 'UX Designer', 'Design Intern'],
+  'Data Analyst': ['Data Analyst', 'Junior Data Analyst', 'Data Intern'],
+}
+
+const EXP_BULLETS: Record<string, string[]> = {
+  'Senior Backend Engineer': [
+    'Designed and shipped event-driven services handling 4k req/s',
+    'Cut p95 latency 40% by reworking the query layer',
+    'Introduced contract tests, dropping integration incidents by half',
+    'Owned the on-call rota and the incident review process',
+    'Migrated the monolith’s billing module to a standalone service',
+  ],
+  'Product Designer': [
+    'Owned the end-to-end redesign of the onboarding flow (+14% activation)',
+    'Built and documented the component library used across 3 squads',
+    'Ran 12 moderated research sessions and synthesised the findings',
+    'Partnered with engineering to ship an accessibility pass to WCAG AA',
+    'Established the team’s weekly design critique',
+  ],
+  'Data Analyst': [
+    'Built the self-serve dashboard suite in Looker used by 60+ staff',
+    'Modelled the core metrics layer in dbt, cutting ad-hoc SQL requests 35%',
+    'Ran the pricing experiment that informed the Q3 packaging change',
+    'Automated the weekly exec report, saving ~6 analyst-hours a week',
+    'Set up anomaly alerts on the revenue pipeline',
+  ],
+}
+
+const SUMMARY_BY_ROLE: Record<string, string> = {
+  'Senior Backend Engineer':
+    'Backend engineer focused on reliable, well-tested distributed systems. Comfortable owning a service from design through on-call, and bringing the rest of the team along.',
+  'Product Designer':
+    'Product designer working end-to-end from research to shipped UI. Care about design systems, accessibility, and keeping the feedback loop with engineering tight.',
+  'Data Analyst':
+    'Analyst who turns messy data into decisions leaders actually use. Strong on SQL and modelling, and on telling the story the numbers support.',
+}
 
 function scoreFromMatch(match: number, r: () => number) {
   // interview score correlates with JD match, with noise
@@ -111,8 +185,63 @@ export function buildCandidates(seed = 73): WorkItem[] {
             : ['Coding', 'System design', 'Problem solving', 'Communication']
       const scores = areas.map((area) => ({ area, score: scoreFromMatch(jdMatch, rand) }))
       const overall = Math.round(scores.reduce((a, s) => a + s.score, 0) / scores.length)
-      const name = `${pickOne(rand, FIRST)} ${pickOne(rand, LAST)}`
+      const first = pickOne(rand, FIRST)
+      const last = pickOne(rand, LAST)
+      const name = `${first} ${last}`
       const applied = new Date(day0 + n * 7 * 3600_000 + Math.floor(rand() * 4 * 3600_000))
+
+      const currentTitle = pickOne(rand, CURRENT_TITLE_BY_ROLE[role.title] ?? [role.title])
+      const location = pickOne(rand, CITIES)
+
+      // skill proficiency bars — must-haves the candidate has read higher
+      const skillLevels: Record<string, number> = {}
+      for (const s of skills) {
+        const base = matched.includes(s) ? 68 + rand() * 27 : 52 + rand() * 32
+        skillLevels[s] = Math.round(base / 5) * 5
+      }
+
+      // work history — 2–3 stints spanning `years`, most recent first
+      const companyBag = [...COMPANIES].sort(() => rand() - 0.5)
+      const currentCompany = companyBag[0]
+      const titles = EXP_TITLES[role.title] ?? [currentTitle, 'Associate', 'Intern']
+      const bulletBag = [...(EXP_BULLETS[role.title] ?? HL_POOL)].sort(() => rand() - 0.5)
+      const stints = years >= 8 ? 3 : 2
+      const experience: ExperienceEntry[] = []
+      let endY = 2026
+      let remaining = years
+      let bi = 0
+      for (let s = 0; s < stints; s++) {
+        const slotsLeft = stints - s
+        const avg = remaining / slotsLeft
+        const len =
+          s === stints - 1
+            ? Math.max(1, remaining)
+            : Math.max(1, Math.min(remaining - (slotsLeft - 1), Math.round(avg + (rand() - 0.5))))
+        const startY = endY - len
+        experience.push({
+          company: s === 0 ? currentCompany : companyBag[s % companyBag.length],
+          title: titles[Math.min(s, titles.length - 1)],
+          start: String(startY),
+          end: s === 0 ? 'Present' : String(endY),
+          bullets: bulletBag.slice(bi, bi + (s === 0 ? 3 : 2)),
+        })
+        bi += s === 0 ? 3 : 2
+        endY = startY
+        remaining -= len
+      }
+
+      const languages = [
+        { name: 'English', level: 'Native / bilingual' },
+        ...[...LANG_POOL].sort(() => rand() - 0.5).slice(0, 1 + Math.floor(rand() * 2)),
+      ]
+      const interests = [...INTEREST_POOL].sort(() => rand() - 0.5).slice(0, 3)
+      const handleFirst = first.toLowerCase().replace(/[^a-z]/g, '')
+      const handleLast = last.toLowerCase().replace(/[^a-z]/g, '')
+      const contact = {
+        email: `${handleFirst}.${handleLast}@gmail.com`,
+        phone: `+65 ${pickOne(rand, ['8', '9'])}${Math.floor(100 + rand() * 900)} ${Math.floor(1000 + rand() * 9000)}`,
+        linkedin: `linkedin.com/in/${handleFirst}-${handleLast}`,
+      }
 
       const data: CandidateData = {
         ref: `CAND-00${42 + n}`,
@@ -120,11 +249,20 @@ export function buildCandidates(seed = 73): WorkItem[] {
         role: role.title,
         seniority: role.seniority,
         years,
-        currentTitle: pickOne(rand, TITLES[role.seniority] ?? TITLES.mid),
-        location: pickOne(rand, CITIES),
-        education: pickOne(rand, EDU),
+        currentTitle,
+        company: currentCompany,
+        headline: `${currentTitle} at ${currentCompany}`,
+        summary: SUMMARY_BY_ROLE[role.title] ?? '',
+        location,
+        education: pickOne(rand, EDU_BY_ROLE[role.title] ?? ['BSc Computer Science']),
+        eduYear: String(2026 - years - 1 - Math.floor(rand() * 2)),
         skills,
+        skillLevels,
         highlights: [...HL_POOL].sort(() => rand() - 0.5).slice(0, 2 + Math.floor(rand() * 2)),
+        experience,
+        languages,
+        interests,
+        contact,
         appliedAt: applied.toISOString(),
         screen: {
           jdMatch,
