@@ -14,6 +14,7 @@ const AGENTS: Agent[] = [
 export const hrConfig: DomainConfig = {
   id: 'hr',
   brandLine: 'TALENT ACQUISITION · TEAM ADVANTECH',
+  footerLine: 'AI agent workspace · Confidential HR workflow · Zero privacy risk',
   agents: AGENTS,
   reportAgentId: 'lead',
   spotlightStageId: 'interview',

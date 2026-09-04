@@ -56,7 +56,7 @@ export default function DomainDashboard({ config }: { config: DomainConfig }) {
         </div>
 
         <footer className="shrink-0 px-1 text-center text-[0.78rem] text-faint">
-          AI agent workspace · Local processing · Zero cloud data leakage
+          {config.footerLine}
         </footer>
       </div>
     </div>

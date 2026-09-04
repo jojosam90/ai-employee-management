@@ -9,6 +9,7 @@ import type { DomainConfig } from './config'
 export const financeConfig: DomainConfig = {
   id: 'finance',
   brandLine: 'FINANCE OPERATIONS · TEAM ADVANTECH',
+  footerLine: 'AI agent workspace · Local processing · Zero cloud data leakage',
   agents: INITIAL_AGENTS,
   reportAgentId: 'delta',
   spotlightStageId: 'extracting',

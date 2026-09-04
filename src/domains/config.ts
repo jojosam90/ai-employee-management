@@ -47,6 +47,8 @@ export interface DomainConfig {
   id: string
   /** Header sub-line, e.g. "FINANCE OPERATIONS · TEAM ADVANTECH" */
   brandLine: string
+  /** Page footer strapline */
+  footerLine: string
   /** Pipeline agents plus the reporting agent */
   agents: Agent[]
   reportAgentId: string

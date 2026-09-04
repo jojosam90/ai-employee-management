@@ -9,6 +9,7 @@ const nid = (p: string) => `${p}${Date.now().toString(36)}${(uid++).toString(36)
 const EMPTY_CONFIG: DomainConfig = {
   id: '',
   brandLine: '',
+  footerLine: 'AI agent workspace',
   agents: [],
   reportAgentId: '',
   pipeline: [],

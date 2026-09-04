@@ -9,9 +9,16 @@ const PLANNED: Partial<Record<TeamId, string[]>> = {
   engineering: ['PR review & merge-readiness agent', 'Incident summary agent', 'Delivery / sprint burn agent', 'Dependency & CVE agent'],
 }
 
+const FOOTER: Partial<Record<TeamId, string>> = {
+  product: 'AI agent workspace · Offline-first execution · Zero cloud dependency',
+  sales: 'AI agent workspace · Enterprise data isolation · Zero security friction',
+  engineering: 'AI agent workspace · Local runtime & LLM · Zero network outbound',
+}
+
 export default function TeamPlaceholder({ team }: { team: TeamId }) {
   const meta = teamMeta(team)
   const planned = PLANNED[team] ?? []
+  const footer = FOOTER[team] ?? 'AI agent workspace'
 
   return (
     <div className="min-h-screen">
@@ -60,6 +67,10 @@ export default function TeamPlaceholder({ team }: { team: TeamId }) {
             Open the Finance console <ArrowRight size={14} />
           </Link>
         </section>
+
+        <footer className="shrink-0 px-1 text-center text-[0.78rem] text-faint">
+          {footer}
+        </footer>
       </div>
     </div>
   )

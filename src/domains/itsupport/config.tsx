@@ -14,6 +14,7 @@ const AGENTS: Agent[] = [
 export const itSupportConfig: DomainConfig = {
   id: 'itsupport',
   brandLine: 'IT SERVICE OPERATIONS · TEAM ADVANTECH',
+  footerLine: 'AI agent workspace · Fully isolated environment · Zero data egress',
   agents: AGENTS,
   reportAgentId: 'ir',
   spotlightStageId: 'l2diagnose',
