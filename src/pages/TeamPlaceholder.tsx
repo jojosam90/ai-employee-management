@@ -1,4 +1,4 @@
-import { Cpu, Hammer, ArrowRight } from 'lucide-react'
+import { Hammer, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { teamMeta, type TeamId } from '@/auth/useAuth'
 import SessionControls from '@/components/SessionControls'
@@ -18,9 +18,7 @@ export default function TeamPlaceholder({ team }: { team: TeamId }) {
       <div className="mx-auto flex min-h-screen max-w-[1680px] flex-col gap-3 p-3">
         <header className="panel flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-md bg-cyan/10 text-cyan ring-1 ring-cyan/30">
-              <Cpu size={18} />
-            </span>
+            <img src="/logo.svg" alt="" className="h-8 w-8" />
             <div className="leading-tight">
               <h1 className="text-sm font-semibold tracking-[0.14em] text-txt">
                 AI EMPLOYEE MANAGEMENT DASHBOARD

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AI Employee Management">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#83ccb6"/>
+      <stop offset="1" stop-color="#55a8b2"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#161c24"/>
+  <rect x="3" y="3" width="58" height="58" rx="14" fill="none" stroke="url(#g)" stroke-opacity="0.4" stroke-width="1.5"/>
+
+  <!-- pins -->
+  <g stroke="url(#g)" stroke-width="4.5" stroke-linecap="round">
+    <path d="M24 9v6M40 9v6M24 49v6M40 49v6M9 24h6M9 40h6M49 24h6M49 40h6"/>
+  </g>
+
+  <!-- chip body -->
+  <rect x="16" y="16" width="32" height="32" rx="9" fill="#161c24" stroke="url(#g)" stroke-width="4"/>
+
+  <!-- three agents moving through the pipeline -->
+  <circle cx="23.5" cy="32" r="3.6" fill="url(#g)" fill-opacity="0.55"/>
+  <circle cx="32" cy="32" r="3.9" fill="url(#g)" fill-opacity="0.8"/>
+  <circle cx="41" cy="32" r="4.7" fill="url(#g)"/>
+</svg>

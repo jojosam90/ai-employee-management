@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Cpu } from 'lucide-react'
 import { useSim } from '@/engine/store'
 import { cn } from '@/lib/cn'
 import SessionControls from './SessionControls'
@@ -30,9 +29,7 @@ export default function Header() {
   return (
     <header className="panel flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
       <div className="flex items-center gap-2.5">
-        <span className="grid h-8 w-8 place-items-center rounded-md bg-cyan/10 text-cyan ring-1 ring-cyan/30">
-          <Cpu size={18} />
-        </span>
+        <img src="/logo.svg" alt="" className="h-8 w-8" />
         <div className="leading-tight">
           <h1 className="text-sm font-semibold tracking-[0.14em] text-txt">
             AI EMPLOYEE MANAGEMENT DASHBOARD

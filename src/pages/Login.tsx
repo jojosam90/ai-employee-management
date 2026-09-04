@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { Cpu, ChevronDown, ArrowRight, User } from 'lucide-react'
+import { ChevronDown, ArrowRight, User } from 'lucide-react'
 import { useAuth, TEAMS, initials, type TeamId } from '@/auth/useAuth'
 
 export default function Login() {
@@ -33,9 +33,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="panel w-full max-w-sm p-6">
         <div className="mb-5 flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-md bg-cyan/10 text-cyan ring-1 ring-cyan/30">
-            <Cpu size={19} />
-          </span>
+          <img src="/logo.svg" alt="" className="h-9 w-9" />
           <div className="leading-tight">
             <h1 className="text-sm font-semibold tracking-[0.12em] text-txt">AI EMPLOYEE MANAGEMENT</h1>
             <p className="text-[0.8rem] tracking-[0.2em] text-cyan">OPERATIONS CONSOLE</p>
