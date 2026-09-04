@@ -47,12 +47,13 @@ export const INITIAL_AGENTS: Agent[] = [
   },
 ]
 
-/** Floating helpers added by "Reallocate resources" — pick up work at any pipeline stage. */
+/** Finance's floating helpers, added by "Reallocate resources" — pick up work at any stage.
+ *  Each domain supplies its own set via DomainConfig.extraAgents. */
 export const EXTRA_AGENTS: Agent[] = [
   {
     id: 'epsilon',
     name: 'Agent Epsilon',
-    role: 'Floating Assist',
+    role: 'Floating analyst — any stage',
     stage: 'flex',
     avatar: 60,
     status: 'idle',
@@ -63,7 +64,7 @@ export const EXTRA_AGENTS: Agent[] = [
   {
     id: 'zeta',
     name: 'Agent Zeta',
-    role: 'Floating Assist',
+    role: 'Floating analyst — any stage',
     stage: 'flex',
     avatar: 24,
     status: 'idle',

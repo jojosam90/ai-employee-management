@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Radio, Search } from 'lucide-react'
 import { useSim } from '@/engine/store'
-import { EXTRA_AGENTS } from '@/engine/agents'
 import { Panel } from './ui'
 import { cn } from '@/lib/cn'
 
@@ -17,16 +16,17 @@ const FIXED_TONE: Record<string, string> = { system: 'text-faint', boss: 'text-a
 export default function CommunicationsLog() {
   const logs = useSim((s) => s.logs)
   const agents = useSim((s) => s.config.agents)
+  const extraAgents = useSim((s) => s.config.extraAgents)
   const [q, setQ] = useState('')
 
   const nameOf = (id: string) =>
     agents.find((a) => a.id === id)?.name ??
-    EXTRA_AGENTS.find((a) => a.id === id)?.name ??
+    extraAgents.find((a) => a.id === id)?.name ??
     (id === 'system' ? 'System' : id === 'boss' ? 'You' : id)
 
   const toneOf = (id: string) => {
     if (FIXED_TONE[id]) return FIXED_TONE[id]
-    const i = [...agents, ...EXTRA_AGENTS].findIndex((a) => a.id === id)
+    const i = [...agents, ...extraAgents].findIndex((a) => a.id === id)
     return i >= 0 ? TONES[i % TONES.length] : 'text-dim'
   }
 

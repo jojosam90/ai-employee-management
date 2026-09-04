@@ -11,11 +11,17 @@ const AGENTS: Agent[] = [
   { id: 'ir', name: 'Agent Dana', role: 'Incident reporting & problems', stage: 'reporting', avatar: 9, status: 'idle', processed: 0, accuracy: 0.96, speed: 1 },
 ]
 
+const EXTRA_AGENTS: Agent[] = [
+  { id: 'swing1', name: 'Agent Ellis', role: 'Swing engineer — any tier', stage: 'flex', avatar: 68, status: 'idle', processed: 0, accuracy: 0.94, speed: 1 },
+  { id: 'swing2', name: 'Agent Frankie', role: 'Swing engineer — any tier', stage: 'flex', avatar: 52, status: 'idle', processed: 0, accuracy: 0.94, speed: 1 },
+]
+
 export const itSupportConfig: DomainConfig = {
   id: 'itsupport',
   brandLine: 'IT SERVICE OPERATIONS · TEAM ADVANTECH',
   footerLine: 'AI agent workspace · Fully isolated environment · Zero data egress',
   agents: AGENTS,
+  extraAgents: EXTRA_AGENTS,
   reportAgentId: 'ir',
   spotlightStageId: 'l2diagnose',
   pipeline: [

@@ -1,4 +1,4 @@
-import { INITIAL_AGENTS } from '@/engine/agents'
+import { INITIAL_AGENTS, EXTRA_AGENTS } from '@/engine/agents'
 import { buildDocuments } from '@/engine/seed'
 import { analyze } from '@/engine/analysis'
 import type { FinancialDoc, Report } from '@/types'
@@ -11,6 +11,7 @@ export const financeConfig: DomainConfig = {
   brandLine: 'FINANCE OPERATIONS · TEAM ADVANTECH',
   footerLine: 'AI agent workspace · Local processing · Zero cloud data leakage',
   agents: INITIAL_AGENTS,
+  extraAgents: EXTRA_AGENTS,
   reportAgentId: 'delta',
   spotlightStageId: 'extracting',
   pipeline: [

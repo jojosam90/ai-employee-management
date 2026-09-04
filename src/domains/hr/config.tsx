@@ -11,11 +11,17 @@ const AGENTS: Agent[] = [
   { id: 'lead', name: 'Agent Hana', role: 'Hiring report & recommendations', stage: 'reporting', avatar: 47, status: 'idle', processed: 0, accuracy: 0.96, speed: 1 },
 ]
 
+const EXTRA_AGENTS: Agent[] = [
+  { id: 'float1', name: 'Agent Priya', role: 'Floating recruiter — any stage', stage: 'flex', avatar: 44, status: 'idle', processed: 0, accuracy: 0.95, speed: 1 },
+  { id: 'float2', name: 'Agent Noah', role: 'Floating recruiter — any stage', stage: 'flex', avatar: 13, status: 'idle', processed: 0, accuracy: 0.95, speed: 1 },
+]
+
 export const hrConfig: DomainConfig = {
   id: 'hr',
   brandLine: 'TALENT ACQUISITION · TEAM ADVANTECH',
   footerLine: 'AI agent workspace · Confidential HR workflow · Zero privacy risk',
   agents: AGENTS,
+  extraAgents: EXTRA_AGENTS,
   reportAgentId: 'lead',
   spotlightStageId: 'interview',
   pipeline: [

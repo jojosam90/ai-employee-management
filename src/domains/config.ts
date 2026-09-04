@@ -51,6 +51,8 @@ export interface DomainConfig {
   footerLine: string
   /** Pipeline agents plus the reporting agent */
   agents: Agent[]
+  /** Floating helpers this team can call in via "Reallocate resources" (stage: 'flex') */
+  extraAgents: Agent[]
   reportAgentId: string
   pipeline: PipelineStage[]
   /** Which stage the "spotlight" detail view follows */

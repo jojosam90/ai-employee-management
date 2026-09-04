@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import type { Agent, HealthPoint, LogEntry, LogLevel, SimPhase } from '@/types'
 import type { DomainConfig, DomainReport, WorkItem } from '@/domains/config'
-import { EXTRA_AGENTS } from './agents'
 
 let uid = 0
 const nid = (p: string) => `${p}${Date.now().toString(36)}${(uid++).toString(36)}`
@@ -11,6 +10,7 @@ const EMPTY_CONFIG: DomainConfig = {
   brandLine: '',
   footerLine: 'AI agent workspace',
   agents: [],
+  extraAgents: [],
   reportAgentId: '',
   pipeline: [],
   spotlightStageId: '',
@@ -180,7 +180,7 @@ export const useSim = create<SimState>((set, get) => ({
 
   addAgent: () => {
     const s = get()
-    const next = EXTRA_AGENTS.find((e) => !s.agents.some((a) => a.id === e.id))
+    const next = s.config.extraAgents.find((e) => !s.agents.some((a) => a.id === e.id))
     if (!next) {
       set({ logs: log(s.logs, 'system', 'info', 'All floating agents are already on the team.') })
       return
@@ -215,7 +215,7 @@ export const useSim = create<SimState>((set, get) => ({
       }
     }
 
-    const agentIds = [...cfg.agents.map((a) => a.id), 'epsilon', 'zeta', 'all']
+    const agentIds = [...cfg.agents.map((a) => a.id), ...cfg.extraAgents.map((a) => a.id), 'all']
     const agentMatch = lower.match(new RegExp(`\\b(${agentIds.join('|')})\\b`))
     if (/\b(pause|hold|stop)\b/.test(lower) && agentMatch) {
       if (agentMatch[1] === 'all') get().setAllPaused(true)
@@ -468,5 +468,9 @@ function stepSim(s: DomainSession): DomainSession {
 }
 
 function agentName(s: SimState, id: string) {
-  return s.config.agents.find((a) => a.id === id)?.name ?? EXTRA_AGENTS.find((a) => a.id === id)?.name ?? id
+  return (
+    s.config.agents.find((a) => a.id === id)?.name ??
+    s.config.extraAgents.find((a) => a.id === id)?.name ??
+    id
+  )
 }
