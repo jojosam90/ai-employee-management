@@ -1,19 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Cpu, Pause, Play, RotateCcw, Gauge } from 'lucide-react'
+import { Cpu } from 'lucide-react'
 import { useSim } from '@/engine/store'
 import { cn } from '@/lib/cn'
 import SessionControls from './SessionControls'
 
-const SPEEDS = [1, 2, 4, 8]
-
 export default function Header() {
   const [now, setNow] = useState(() => new Date())
   const phase = useSim((s) => s.phase)
-  const running = useSim((s) => s.running)
-  const speed = useSim((s) => s.speed)
-  const toggleRunning = useSim((s) => s.toggleRunning)
-  const setSpeed = useSim((s) => s.setSpeed)
-  const reset = useSim((s) => s.reset)
   const brandLine = useSim((s) => s.config.brandLine)
 
   useEffect(() => {
@@ -59,37 +52,6 @@ export default function Header() {
           <span className="text-faint">Status </span>
           <span className={cn('font-semibold tracking-wide', statusTone)}>{statusText}</span>
         </div>
-
-        <div className="flex items-center gap-1 rounded-md bg-bg-2 p-0.5 ring-1 ring-edge-soft">
-          <Gauge size={13} className="mx-1 text-faint" />
-          {SPEEDS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSpeed(s)}
-              className={cn(
-                'rounded px-1.5 py-0.5 text-[0.82rem] tabular-nums transition',
-                speed === s ? 'bg-cyan/20 text-cyan' : 'text-dim hover:text-txt',
-              )}
-            >
-              {s}×
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={toggleRunning}
-          className="flex items-center gap-1 rounded-md bg-bg-2 px-2 py-1 text-dim ring-1 ring-edge-soft hover:text-txt"
-        >
-          {running ? <Pause size={13} /> : <Play size={13} />}
-          {running ? 'Pause' : 'Resume'}
-        </button>
-        <button
-          onClick={reset}
-          className="flex items-center gap-1 rounded-md bg-bg-2 px-2 py-1 text-dim ring-1 ring-edge-soft hover:text-txt"
-        >
-          <RotateCcw size={13} />
-          Reset
-        </button>
 
         <div className="mx-1 hidden h-5 w-px bg-edge-soft lg:block" />
         <SessionControls />
