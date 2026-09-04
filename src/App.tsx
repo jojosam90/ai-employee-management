@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { useAuth } from '@/auth/useAuth'
+import { useAuth, isVisibleTeam } from '@/auth/useAuth'
 import Login from '@/pages/Login'
 import DomainDashboard from '@/pages/DomainDashboard'
-import TeamPlaceholder from '@/pages/TeamPlaceholder'
 import { financeConfig } from '@/domains/finance'
 import { itSupportConfig } from '@/domains/itsupport/config'
 import { hrConfig } from '@/domains/hr/config'
@@ -47,31 +46,14 @@ export default function App() {
           }
         />
         <Route
-          path="/product"
+          path="*"
           element={
-            <RequireAuth>
-              <TeamPlaceholder team="product" />
-            </RequireAuth>
+            <Navigate
+              to={session ? (isVisibleTeam(session.team) ? `/${session.team}` : '/finance') : '/login'}
+              replace
+            />
           }
         />
-        <Route
-          path="/sales"
-          element={
-            <RequireAuth>
-              <TeamPlaceholder team="sales" />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/engineering"
-          element={
-            <RequireAuth>
-              <TeamPlaceholder team="engineering" />
-            </RequireAuth>
-          }
-        />
-
-        <Route path="*" element={<Navigate to={session ? `/${session.team}` : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
   )

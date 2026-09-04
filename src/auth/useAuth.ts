@@ -8,16 +8,25 @@ export interface TeamMeta {
   label: string
   tagline: string
   ready: boolean
+  /** Hidden from the login / team-switcher menus and has no route */
+  hidden?: boolean
 }
 
 export const TEAMS: TeamMeta[] = [
-  { id: 'product', label: 'Product Team', tagline: 'Roadmap, releases & discovery agents', ready: false },
+  { id: 'product', label: 'Product Team', tagline: 'Roadmap, releases & discovery agents', ready: false, hidden: true },
   { id: 'finance', label: 'Finance Team', tagline: 'Document processing, forecast & risk', ready: true },
-  { id: 'sales', label: 'Sales Team', tagline: 'Pipeline, quota & deal-desk agents', ready: false },
-  { id: 'engineering', label: 'Engineering Team', tagline: 'Delivery, incident & review agents', ready: false },
+  { id: 'sales', label: 'Sales Team', tagline: 'Pipeline, quota & deal-desk agents', ready: false, hidden: true },
+  { id: 'engineering', label: 'Engineering Team', tagline: 'Delivery, incident & review agents', ready: false, hidden: true },
   { id: 'itsupport', label: 'IT Support Team', tagline: 'L1 / L2 / L3 incident & problem resolution', ready: true },
   { id: 'hr', label: 'HR Team', tagline: 'Résumé screening, interview & candidate ranking', ready: true },
 ]
+
+/** Teams that have a live route and appear in the menus. */
+export const VISIBLE_TEAMS: TeamMeta[] = TEAMS.filter((t) => !t.hidden)
+
+export function isVisibleTeam(id: TeamId): boolean {
+  return VISIBLE_TEAMS.some((t) => t.id === id)
+}
 
 export function teamMeta(id: TeamId): TeamMeta {
   return TEAMS.find((t) => t.id === id) ?? TEAMS[1]

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { ChevronDown, ArrowRight, User } from 'lucide-react'
-import { useAuth, TEAMS, initials, type TeamId } from '@/auth/useAuth'
+import { useAuth, VISIBLE_TEAMS, isVisibleTeam, initials, type TeamId } from '@/auth/useAuth'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -11,18 +11,19 @@ export default function Login() {
   const login = useAuth((s) => s.login)
 
   const [name, setName] = useState('')
-  const [team, setTeam] = useState<TeamId>(lastTeam)
+  const [team, setTeam] = useState<TeamId>(isVisibleTeam(lastTeam) ? lastTeam : 'finance')
 
-  if (session) return <Navigate to={`/${session.team}`} replace />
+  if (session) return <Navigate to={isVisibleTeam(session.team) ? `/${session.team}` : '/finance'} replace />
 
   const quickUser = lastUser ?? 'Consap'
+  const quickTeam: TeamId = isVisibleTeam(lastTeam) ? lastTeam : 'finance'
 
   const go = (user: string, t: TeamId) => {
     login(user, t)
     navigate(`/${t}`, { replace: true })
   }
 
-  const continueAs = () => go(quickUser, lastTeam)
+  const continueAs = () => go(quickUser, quickTeam)
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -80,7 +81,7 @@ export default function Login() {
               onChange={(e) => setTeam(e.target.value as TeamId)}
               className="w-full appearance-none rounded-md bg-bg-2 px-3 py-2 pr-8 text-[0.9rem] text-txt ring-1 ring-edge-soft focus:outline-none focus:ring-cyan/40"
             >
-              {TEAMS.map((t) => (
+              {VISIBLE_TEAMS.map((t) => (
                 <option key={t.id} value={t.id} className="bg-panel">
                   {t.label}
                   {t.ready ? '' : '  (preview)'}

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { LogOut, ChevronDown } from 'lucide-react'
-import { useAuth, TEAMS, type TeamId } from '@/auth/useAuth'
+import { useAuth, VISIBLE_TEAMS, type TeamId } from '@/auth/useAuth'
 
 export default function SessionControls() {
   const navigate = useNavigate()
@@ -29,7 +29,7 @@ export default function SessionControls() {
           className="appearance-none rounded-md bg-bg-2 py-1 pl-2 pr-6 text-[0.86rem] text-txt ring-1 ring-edge-soft focus:outline-none focus:ring-cyan/40"
           aria-label="Switch team view"
         >
-          {TEAMS.map((t) => (
+          {VISIBLE_TEAMS.map((t) => (
             <option key={t.id} value={t.id} className="bg-panel">
               {t.label}
             </option>
