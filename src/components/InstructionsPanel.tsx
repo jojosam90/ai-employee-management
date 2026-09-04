@@ -1,22 +1,19 @@
 import { useRef, useState } from 'react'
-import { Terminal, SendHorizonal } from 'lucide-react'
+import { Terminal, SendHorizonal, Pause, Play, UserPlus } from 'lucide-react'
 import { useSim } from '@/engine/store'
 import { Panel } from './ui'
 import { cn } from '@/lib/cn'
 
-const SUGGESTIONS = [
-  'Prioritise all invoices',
-  'Prioritise receipts',
-  'Pause Agent Beta',
-  'Reallocate resources',
-  'Generate the summary',
-]
+const PROMPTS = ['Prioritise all invoices', 'Prioritise receipts', 'Pause Agent Beta']
 
 export default function InstructionsPanel() {
   const send = useSim((s) => s.sendInstruction)
   const phase = useSim((s) => s.phase)
+  const agents = useSim((s) => s.agents)
   const [text, setText] = useState('')
   const ref = useRef<HTMLTextAreaElement>(null)
+
+  const allPaused = agents.length > 0 && agents.every((a) => a.status === 'paused')
 
   const submit = () => {
     if (!text.trim()) return
@@ -24,7 +21,7 @@ export default function InstructionsPanel() {
     setText('')
   }
 
-  const applySuggestion = (s: string) => {
+  const applyPrompt = (s: string) => {
     setText(s)
     ref.current?.focus()
   }
@@ -34,8 +31,9 @@ export default function InstructionsPanel() {
       <p className="text-[0.82rem] text-dim">
         {phase === 'standby'
           ? 'The team is waiting. Send an instruction — e.g. "prioritise all invoices" — to start processing.'
-          : 'Direct the team in plain language — reprioritise the queue, pause an agent, focus a vendor, or ask for the summary.'}
+          : 'Direct the team in plain language — reprioritise the queue, pause an agent, or add capacity.'}
       </p>
+
       <div className={cn('rounded-lg border bg-bg-2/70 p-2', phase === 'standby' ? 'border-amber/40' : 'border-edge-soft')}>
         <textarea
           ref={ref}
@@ -58,16 +56,38 @@ export default function InstructionsPanel() {
           </button>
         </div>
       </div>
+
       <div className="flex flex-wrap gap-1.5">
-        {SUGGESTIONS.map((s) => (
+        {PROMPTS.map((s) => (
           <button
             key={s}
-            onClick={() => applySuggestion(s)}
+            onClick={() => applyPrompt(s)}
             className="rounded-full border border-edge-soft bg-white/[0.02] px-2 py-0.5 text-[0.8rem] text-dim transition hover:border-teal/40 hover:text-teal"
           >
             {s}
           </button>
         ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 pt-0.5">
+        <button
+          onClick={() => send(allPaused ? 'resume all agents' : 'pause all agents')}
+          className={cn(
+            'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[0.8rem] font-medium ring-1 ring-inset transition',
+            allPaused
+              ? 'bg-amber/15 text-amber ring-amber/35 hover:bg-amber/25'
+              : 'bg-white/[0.03] text-dim ring-edge-soft hover:text-txt',
+          )}
+        >
+          {allPaused ? <Play size={12} /> : <Pause size={12} />}
+          {allPaused ? 'Resume all agents' : 'Pause all agents'}
+        </button>
+        <button
+          onClick={() => send('reallocate resources')}
+          className="flex items-center gap-1.5 rounded-md bg-white/[0.03] px-2.5 py-1 text-[0.8rem] font-medium text-dim ring-1 ring-inset ring-edge-soft transition hover:text-txt"
+        >
+          <UserPlus size={12} /> Reallocate resources
+        </button>
       </div>
     </Panel>
   )

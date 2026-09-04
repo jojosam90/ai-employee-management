@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Agent, FinancialDoc, HealthPoint, LogEntry, LogLevel, Report, SimPhase } from '@/types'
-import { INITIAL_AGENTS } from './agents'
+import { INITIAL_AGENTS, EXTRA_AGENTS, AGENT_NAME } from './agents'
 import { buildDocuments } from './seed'
 import { analyze } from './analysis'
 
@@ -29,6 +29,8 @@ interface SimState {
   toggleRunning: () => void
   setSpeed: (s: number) => void
   pauseAgent: (id: string, paused: boolean) => void
+  setAllPaused: (paused: boolean) => void
+  addAgent: () => void
   sendInstruction: (text: string) => void
 }
 
@@ -47,6 +49,13 @@ const AVAILABLE: Record<string, (d: FinancialDoc) => boolean> = {
   alpha: (d) => d.stage === 'queued',
   beta: (d) => d.stage === 'extracting' && !d.assignedTo,
   gamma: (d) => d.stage === 'validating' && !d.assignedTo,
+  // floating helpers pick up work at any pipeline stage
+  flex: (d) =>
+    d.stage === 'queued' || ((d.stage === 'extracting' || d.stage === 'validating') && !d.assignedTo),
+}
+
+function availableFor(agent: Agent) {
+  return AVAILABLE[agent.id] ?? (agent.stage === 'flex' ? AVAILABLE.flex : undefined)
 }
 
 export const useSim = create<SimState>((set, get) => ({
@@ -98,8 +107,38 @@ export const useSim = create<SimState>((set, get) => ({
   pauseAgent: (id, paused) =>
     set((s) => ({
       agents: s.agents.map((a) => (a.id === id ? { ...a, status: paused ? 'paused' : 'idle' } : a)),
-      logs: log(s.logs, 'system', 'warn', `${labelFor(id)} ${paused ? 'paused' : 'resumed'}.`),
+      logs: log(s.logs, 'system', 'warn', `${AGENT_NAME[id] ?? id} ${paused ? 'paused' : 'resumed'}.`),
     })),
+
+  setAllPaused: (paused) =>
+    set((s) => ({
+      agents: s.agents.map((a) => ({ ...a, status: paused ? 'paused' : 'idle' })),
+      phase: !paused && s.phase === 'standby' ? 'running' : s.phase,
+      startedAt: !paused && s.phase === 'standby' ? Date.now() : s.startedAt,
+      logs: log(
+        s.logs,
+        'system',
+        'warn',
+        paused ? 'All agents paused by the operator.' : 'All agents resumed — processing continues.',
+      ),
+    })),
+
+  addAgent: () => {
+    const s = get()
+    const next = EXTRA_AGENTS.find((e) => !s.agents.some((a) => a.id === e.id))
+    if (!next) {
+      set({ logs: log(s.logs, 'system', 'info', 'All floating agents are already on the team.') })
+      return
+    }
+    const rest = s.agents.filter((a) => a.id !== 'delta')
+    const delta = s.agents.filter((a) => a.id === 'delta')
+    set({
+      agents: [...rest, { ...next }, ...delta],
+      phase: s.phase === 'standby' ? 'running' : s.phase,
+      startedAt: s.phase === 'standby' ? Date.now() : s.startedAt,
+      logs: log(s.logs, 'system', 'success', `${next.name} added — picking up work across the pipeline.`),
+    })
+  },
 
   sendInstruction: (text) => {
     const t = text.trim()
@@ -118,15 +157,15 @@ export const useSim = create<SimState>((set, get) => ({
       }
     }
 
-    const agentMatch = lower.match(/\b(alpha|beta|gamma|delta|all)\b/)
+    const agentMatch = lower.match(/\b(alpha|beta|gamma|delta|epsilon|zeta|all)\b/)
     if (/\b(pause|hold|stop)\b/.test(lower) && agentMatch) {
-      const ids = agentMatch[1] === 'all' ? ['alpha', 'beta', 'gamma', 'delta'] : [agentMatch[1]]
-      ids.forEach((id) => get().pauseAgent(id, true))
+      if (agentMatch[1] === 'all') get().setAllPaused(true)
+      else get().pauseAgent(agentMatch[1], true)
       return
     }
     if (/\b(resume|continue|unpause)\b/.test(lower) && agentMatch) {
-      const ids = agentMatch[1] === 'all' ? ['alpha', 'beta', 'gamma', 'delta'] : [agentMatch[1]]
-      ids.forEach((id) => get().pauseAgent(id, false))
+      if (agentMatch[1] === 'all') get().setAllPaused(false)
+      else get().pauseAgent(agentMatch[1], false)
       start()
       return
     }
@@ -161,11 +200,8 @@ export const useSim = create<SimState>((set, get) => ({
       return
     }
 
-    if (/\breallocat|rebalance|spread load/.test(lower)) {
-      set((s) => ({
-        agents: s.agents.map((a) => ({ ...a, speed: Math.min(1.8, a.speed + 0.14) })),
-        logs: log(s.logs, 'system', 'success', 'Compute rebalanced across the team — throughput up ~15%.'),
-      }))
+    if (/\breallocat|rebalance|spread load|add (an )?agent|more agent/.test(lower)) {
+      get().addAgent()
       start()
       return
     }
@@ -231,7 +267,7 @@ export const useSim = create<SimState>((set, get) => ({
     for (const agent of agents) {
       if (agent.status === 'paused' || agent.stage === 'reporting') continue
       if (agent.currentDocId) continue
-      const avail = AVAILABLE[agent.id]
+      const avail = availableFor(agent)
       if (!avail) continue
       const doc = pickDoc(docs, avail)
       if (!doc) {
@@ -240,11 +276,12 @@ export const useSim = create<SimState>((set, get) => ({
       }
       doc.assignedTo = agent.id
       doc.progress = 0
-      if (agent.id === 'alpha') doc.stage = 'ingesting'
-      if (agent.id === 'beta' && doc.kind !== 'accounts' && spotlightDone()) spotlightId = doc.id
+      if (doc.stage === 'queued') doc.stage = 'ingesting'
+      const isExtract = doc.stage === 'extracting'
+      if (isExtract && doc.kind !== 'accounts' && spotlightDone()) spotlightId = doc.id
       agent.currentDocId = doc.id
       agent.status = 'processing'
-      logs = log(logs, agent.id, 'info', `${verbFor(agent.id)} ${doc.ref} — ${doc.vendor}`)
+      logs = log(logs, agent.id, 'info', `${verbFor(doc.stage)} ${doc.ref} — ${doc.vendor}`)
     }
 
     // 2. progress current work
@@ -265,16 +302,18 @@ export const useSim = create<SimState>((set, get) => ({
       agent.status = 'idle'
       agent.processed += 1
 
-      if (agent.id === 'alpha') {
+      // the stage a document is in tells us which job just finished (works for
+      // the named stage agents and the floating helpers alike)
+      if (doc.stage === 'ingesting') {
         doc.confidence = 0.85 + Math.random() * 0.15
         doc.stage = 'extracting'
-      } else if (agent.id === 'beta') {
+      } else if (doc.stage === 'extracting') {
         doc.confidence = 0.9 + Math.random() * 0.09
         doc.stage = 'validating'
-      } else if (agent.id === 'gamma') {
+      } else if (doc.stage === 'validating') {
         doc.stage = 'validated'
         agent.accuracy = Math.min(0.995, agent.accuracy + 0.001)
-        logs = log(logs, 'gamma', 'success', `${doc.ref} reconciled and posted to the ledger.`)
+        logs = log(logs, agent.id, 'success', `${doc.ref} reconciled and posted to the ledger.`)
       }
     }
 
@@ -336,17 +375,10 @@ export const useSim = create<SimState>((set, get) => ({
   },
 }))
 
-function verbFor(id: string) {
-  return id === 'alpha' ? 'Ingesting' : id === 'beta' ? 'Extracting fields from' : 'Reconciling'
-}
-function labelFor(id: string) {
-  return id === 'alpha'
-    ? 'Agent Alpha'
-    : id === 'beta'
-      ? 'Agent Beta'
-      : id === 'gamma'
-        ? 'Agent Gamma'
-        : id === 'delta'
-          ? 'Agent Delta'
-          : id
+function verbFor(stage: string) {
+  return stage === 'ingesting' || stage === 'queued'
+    ? 'Ingesting'
+    : stage === 'extracting'
+      ? 'Extracting fields from'
+      : 'Reconciling'
 }

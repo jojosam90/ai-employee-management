@@ -97,14 +97,20 @@ narrative + top 3 recommendations).
 ### Giving instructions
 
 The team is on **standby** until the first instruction. The **Give Instructions**
-panel takes plain language; suggestion chips fill the box (they don't send).
-Recognised intents:
+panel has a free-text box (prompt chips fill it, they don't send) plus two
+one-click actions:
+
+- **Pause all agents** — freezes every agent; the button becomes **Resume all
+  agents**, which continues the run
+- **Reallocate resources** — adds a floating helper agent (Epsilon, then Zeta)
+  that picks up work at any pipeline stage, raising throughput
+
+Recognised free-text intents:
 
 - `prioritise all invoices` (or receipts, claims, …) — also starts processing
-- `pause Agent Beta` / `resume all`
+- `pause Agent Beta` / `resume all` / `pause all`
 - `focus on vendor <name>`
-- `reallocate resources`
-- `generate the summary`
+- `reallocate resources` / `add an agent`
 - `reset`
 
 Anything else is logged and, on standby, still starts the run.

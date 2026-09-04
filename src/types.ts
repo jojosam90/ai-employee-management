@@ -40,7 +40,7 @@ export interface Agent {
   id: string
   name: string
   role: string
-  stage: Exclude<DocStage, 'queued' | 'validated'> | 'reporting'
+  stage: Exclude<DocStage, 'queued' | 'validated'> | 'reporting' | 'flex'
   avatar: number
   status: AgentStatus
   currentDocId?: string

@@ -64,16 +64,20 @@ function Connector({ flowing }: { flowing: boolean }) {
 }
 
 export default function WorkflowPipeline() {
-  const agents = useSim((s) => s.agents)
+  const allAgents = useSim((s) => s.agents)
   const docs = useSim((s) => s.docs)
   const phase = useSim((s) => s.phase)
   const reportProgress = useSim((s) => s.reportProgress)
+
+  // the diagram shows the four fixed stages; floating helpers appear in Agent Overview
+  const agents = allAgents.filter((a) => a.stage !== 'flex')
+  const flexCount = allAgents.length - agents.length
 
   const count = (fn: (s: string) => boolean) => docs.filter((d) => fn(d.stage)).length
   const queued = count((s) => s === 'queued')
   const inFlight = count((s) => s === 'ingesting' || s === 'extracting' || s === 'validating')
   const validated = count((s) => s === 'validated')
-  const totalProcessed = agents.reduce((a, x) => a + x.processed, 0)
+  const totalProcessed = allAgents.reduce((a, x) => a + x.processed, 0)
 
   const stageQueue: Record<string, number> = {
     alpha: queued,
@@ -127,6 +131,11 @@ export default function WorkflowPipeline() {
         <span>
           Steps run <b className="tabular-nums text-txt">{totalProcessed}</b>
         </span>
+        {flexCount > 0 && (
+          <span className="text-teal">
+            +{flexCount} floating agent{flexCount > 1 ? 's' : ''}
+          </span>
+        )}
       </div>
     </Panel>
   )

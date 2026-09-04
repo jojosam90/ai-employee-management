@@ -47,11 +47,39 @@ export const INITIAL_AGENTS: Agent[] = [
   },
 ]
 
+/** Floating helpers added by "Reallocate resources" — pick up work at any pipeline stage. */
+export const EXTRA_AGENTS: Agent[] = [
+  {
+    id: 'epsilon',
+    name: 'Agent Epsilon',
+    role: 'Floating Assist',
+    stage: 'flex',
+    avatar: 60,
+    status: 'idle',
+    processed: 0,
+    accuracy: 0.95,
+    speed: 1,
+  },
+  {
+    id: 'zeta',
+    name: 'Agent Zeta',
+    role: 'Floating Assist',
+    stage: 'flex',
+    avatar: 24,
+    status: 'idle',
+    processed: 0,
+    accuracy: 0.95,
+    speed: 1,
+  },
+]
+
 export const AGENT_NAME: Record<string, string> = {
   alpha: 'Agent Alpha',
   beta: 'Agent Beta',
   gamma: 'Agent Gamma',
   delta: 'Agent Delta',
+  epsilon: 'Agent Epsilon',
+  zeta: 'Agent Zeta',
   system: 'System',
   boss: 'You',
 }

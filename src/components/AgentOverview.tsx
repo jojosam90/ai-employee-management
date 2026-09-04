@@ -68,9 +68,11 @@ export default function AgentOverview() {
                   ? 'On standby — awaiting instruction'
                   : current
                     ? `${current.ref} · ${current.vendor}`
-                    : queue > 0
-                      ? `${queue} document${queue > 1 ? 's' : ''} in queue`
-                      : 'Idle — queue clear'}
+                    : a.stage === 'flex'
+                      ? 'Floating — assists any stage'
+                      : queue > 0
+                        ? `${queue} document${queue > 1 ? 's' : ''} in queue`
+                        : 'Idle — queue clear'}
             </p>
 
             <ProgressBar
