@@ -82,7 +82,7 @@ export default function WorkflowPipeline() {
   const reportProgress = useSim((s) => s.reportProgress)
   const config = useSim((s) => s.config)
 
-  const flexCount = allAgents.filter((a) => a.stage === 'flex').length
+  const flexAgents = allAgents.filter((a) => a.stage === 'flex')
   const agentById = (id: string) => allAgents.find((a) => a.id === id)
 
   const count = (fn: (s: string) => boolean) => docs.filter((d) => fn(d.stage)).length
@@ -92,7 +92,7 @@ export default function WorkflowPipeline() {
   const done = count((s) => s === 'done')
   const totalProcessed = allAgents.reduce((a, x) => a + x.processed, 0)
 
-  // one node per pipeline stage, plus the reporting agent
+  // one node per pipeline stage, then any floating agents, then the reporting agent
   const nodes = [
     ...config.pipeline.map((p) => ({
       key: p.id,
@@ -100,6 +100,15 @@ export default function WorkflowPipeline() {
       queue: count((s) => s === p.id),
       agent: agentById(p.agentId),
       reporting: false,
+      flex: false,
+    })),
+    ...flexAgents.map((a) => ({
+      key: a.id,
+      short: 'Floating',
+      queue: 0,
+      agent: a,
+      reporting: false,
+      flex: true,
     })),
     {
       key: 'report',
@@ -107,6 +116,7 @@ export default function WorkflowPipeline() {
       queue: done,
       agent: agentById(config.reportAgentId),
       reporting: true,
+      flex: false,
     },
   ]
 
@@ -157,7 +167,13 @@ export default function WorkflowPipeline() {
                 <div className="text-[0.66rem] leading-none text-dim">
                   {n.short} ·{' '}
                   <span className={active ? 'text-teal' : ''}>
-                    {n.reporting ? `${n.queue} ready` : `${n.queue} queued`}
+                    {n.flex
+                      ? current
+                        ? current.ref
+                        : 'any stage'
+                      : n.reporting
+                        ? `${n.queue} ready`
+                        : `${n.queue} queued`}
                   </span>
                 </div>
               </div>
@@ -182,9 +198,9 @@ export default function WorkflowPipeline() {
         <span>
           Steps run <b className="tabular-nums text-txt">{totalProcessed}</b>
         </span>
-        {flexCount > 0 && (
+        {flexAgents.length > 0 && (
           <span className="text-teal">
-            +{flexCount} floating agent{flexCount > 1 ? 's' : ''}
+            +{flexAgents.length} floating agent{flexAgents.length > 1 ? 's' : ''}
           </span>
         )}
       </div>
