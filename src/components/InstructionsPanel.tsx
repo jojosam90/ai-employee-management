@@ -4,12 +4,11 @@ import { useSim } from '@/engine/store'
 import { Panel } from './ui'
 import { cn } from '@/lib/cn'
 
-const PROMPTS = ['Prioritise all invoices', 'Prioritise receipts', 'Pause Agent Beta']
-
 export default function InstructionsPanel() {
   const send = useSim((s) => s.sendInstruction)
   const phase = useSim((s) => s.phase)
   const agents = useSim((s) => s.agents)
+  const PROMPTS = useSim((s) => s.config.chips)
   const [text, setText] = useState('')
   const ref = useRef<HTMLTextAreaElement>(null)
 

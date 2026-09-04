@@ -2,8 +2,11 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
 import Login from '@/pages/Login'
-import FinanceDashboard from '@/pages/FinanceDashboard'
+import DomainDashboard from '@/pages/DomainDashboard'
 import TeamPlaceholder from '@/pages/TeamPlaceholder'
+import { financeConfig } from '@/domains/finance'
+import { itSupportConfig } from '@/domains/itsupport/config'
+import { hrConfig } from '@/domains/hr/config'
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const session = useAuth((s) => s.session)
@@ -23,7 +26,23 @@ export default function App() {
           path="/finance"
           element={
             <RequireAuth>
-              <FinanceDashboard />
+              <DomainDashboard config={financeConfig} />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/itsupport"
+          element={
+            <RequireAuth>
+              <DomainDashboard config={itSupportConfig} />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/hr"
+          element={
+            <RequireAuth>
+              <DomainDashboard config={hrConfig} />
             </RequireAuth>
           }
         />

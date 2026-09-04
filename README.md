@@ -1,18 +1,27 @@
-# AI Employee Management Dashboard — Finance Ops
+# AI Employee Management Dashboard
 
-A web dashboard for supervising a team of AI "employees" that process financial
-documents (invoices, till receipts, expense claims) and, once every document is
-reconciled, deliver an **executive summary and recommendations** for the boss:
-spend breakdown, next-month forecast, and prioritised cost-savings. All figures
-are in **Singapore dollars (S$)**.
+A web dashboard for supervising teams of AI "employees" that move work items
+through a pipeline of specialist agents and deliver an executive summary for the
+boss. One config-driven engine powers three domains:
+
+| Domain | Work item | Agents | Deliverable |
+|---|---|---|---|
+| **Finance** | invoice / till receipt / expense claim | Intake+OCR → Extraction → Reconciliation → Reporting | spend breakdown, forecast, cost-savings (S$) |
+| **IT Support** | incident (ServiceNow-style) | L1 triage → L2 root cause → L3 permanent fix → Reporting | MTTR, SLA attainment, recurring problems, runbook/automation recs |
+| **HR** | candidate application | Résumé screen → Structured interview → Compare & rank → Reporting | pipeline funnel, per-role ranked shortlist, offer / second-round recs |
+
+Each domain has a **live detail view** that follows one item through the line
+(the source document / incident record / candidate profile filling in stage by
+stage) and a **report** with tabs.
 
 The team starts on **standby** — nothing runs until the operator sends an
-instruction (e.g. "prioritise all invoices").
+instruction (e.g. "prioritise all invoices" / "prioritise P1 incidents" /
+"prioritise senior candidates").
 
-> The agents are **simulated**. Sample documents are generated and "processed"
-> entirely in the browser — nothing leaves the machine and no API key is needed.
-> The processing pipeline is built behind a small interface so a real
-> LLM-extraction backend can be dropped in later.
+> The agents are **simulated** — everything is generated and "processed" in the
+> browser, no API key. Each domain is a `DomainConfig` (`src/domains/*`); the
+> generic engine (`src/engine/store.ts`) runs any config, so a real
+> LLM backend can be dropped into one stage at a time.
 
 ## Stack
 
@@ -26,10 +35,10 @@ Pick which operations to view:
 
 | Team | Route | State |
 |---|---|---|
-| Finance | `/finance` | Full working dashboard |
-| Product | `/product` | Placeholder (planned agents listed) |
-| Sales | `/sales` | Placeholder |
-| Engineering | `/engineering` | Placeholder |
+| Finance | `/finance` | Working dashboard |
+| IT Support | `/itsupport` | Working dashboard |
+| HR | `/hr` | Working dashboard |
+| Product / Sales / Engineering | `/product` … | Placeholder (planned agents listed) |
 
 After sign-in you're redirected to that team's page. Every page has a header
 with the signed-in user, a **team switcher** dropdown, and a **Log out** button.

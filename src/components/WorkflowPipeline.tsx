@@ -2,13 +2,6 @@ import { Workflow } from 'lucide-react'
 import { useSim } from '@/engine/store'
 import { Panel, Avatar } from './ui'
 
-const SHORT: Record<string, string> = {
-  alpha: 'Intake',
-  beta: 'Extract',
-  gamma: 'Reconcile',
-  delta: 'Report',
-}
-
 function MiniRing({
   progress,
   active,
@@ -68,51 +61,66 @@ export default function WorkflowPipeline() {
   const docs = useSim((s) => s.docs)
   const phase = useSim((s) => s.phase)
   const reportProgress = useSim((s) => s.reportProgress)
+  const config = useSim((s) => s.config)
 
-  // the diagram shows the four fixed stages; floating helpers appear in Agent Overview
-  const agents = allAgents.filter((a) => a.stage !== 'flex')
-  const flexCount = allAgents.length - agents.length
+  const flexCount = allAgents.filter((a) => a.stage === 'flex').length
+  const agentById = (id: string) => allAgents.find((a) => a.id === id)
 
   const count = (fn: (s: string) => boolean) => docs.filter((d) => fn(d.stage)).length
-  const queued = count((s) => s === 'queued')
-  const inFlight = count((s) => s === 'ingesting' || s === 'extracting' || s === 'validating')
-  const validated = count((s) => s === 'validated')
+  const stageIds = config.pipeline.map((p) => p.id)
+  const queued = count((s) => s === stageIds[0])
+  const inFlight = count((s) => stageIds.includes(s)) - queued
+  const done = count((s) => s === 'done')
   const totalProcessed = allAgents.reduce((a, x) => a + x.processed, 0)
 
-  const stageQueue: Record<string, number> = {
-    alpha: queued,
-    beta: count((s) => s === 'extracting'),
-    gamma: count((s) => s === 'validating'),
-    delta: validated,
-  }
+  // one node per pipeline stage, plus the reporting agent
+  const nodes = [
+    ...config.pipeline.map((p) => ({
+      key: p.id,
+      short: p.short,
+      queue: count((s) => s === p.id),
+      agent: agentById(p.agentId),
+      reporting: false,
+    })),
+    {
+      key: 'report',
+      short: 'Report',
+      queue: done,
+      agent: agentById(config.reportAgentId),
+      reporting: true,
+    },
+  ]
 
   return (
     <Panel title="Current Workflow Pipeline" icon={<Workflow size={14} />} className="shrink-0" bodyClass="p-3 flex flex-col gap-2">
       <div className="flex items-start justify-between">
-        {agents.map((a, i) => {
+        {nodes.map((n, i) => {
+          if (!n.agent) return null
+          const a = n.agent
           const current = docs.find((d) => d.id === a.currentDocId)
           const active = a.status === 'processing'
-          const prog =
-            a.stage === 'reporting'
-              ? phase === 'reporting'
-                ? reportProgress
-                : phase === 'done'
-                  ? 100
-                  : 0
-              : current?.progress ?? 0
+          const prog = n.reporting
+            ? phase === 'reporting'
+              ? reportProgress
+              : phase === 'done'
+                ? 100
+                : 0
+            : current?.progress ?? 0
           return (
-            <div key={a.id} className="flex flex-1 items-start">
+            <div key={n.key} className="flex flex-1 items-start">
               <div className="flex flex-1 flex-col items-center gap-1 text-center">
                 <MiniRing progress={prog} active={active} avatar={a.avatar} name={a.name} />
                 <div className="text-[0.82rem] font-semibold leading-none text-txt">{a.name.replace('Agent ', '')}</div>
                 <div className="text-[0.66rem] leading-none text-dim">
-                  {SHORT[a.id]} ·{' '}
+                  {n.short} ·{' '}
                   <span className={active ? 'text-teal' : ''}>
-                    {a.stage === 'reporting' ? `${stageQueue.delta} ready` : `${stageQueue[a.id]} queued`}
+                    {n.reporting ? `${n.queue} ready` : `${n.queue} queued`}
                   </span>
                 </div>
               </div>
-              {i < agents.length - 1 && <Connector flowing={active || agents[i + 1].status === 'processing'} />}
+              {i < nodes.length - 1 && (
+                <Connector flowing={active || nodes[i + 1].agent?.status === 'processing'} />
+              )}
             </div>
           )
         })}
@@ -126,7 +134,7 @@ export default function WorkflowPipeline() {
           In progress <b className="tabular-nums text-txt">{inFlight}</b>
         </span>
         <span>
-          Reconciled <b className="tabular-nums text-teal">{validated}</b>
+          {config.labels.doneStat} <b className="tabular-nums text-teal">{done}</b>
         </span>
         <span>
           Steps run <b className="tabular-nums text-txt">{totalProcessed}</b>

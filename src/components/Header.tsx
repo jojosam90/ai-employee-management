@@ -14,6 +14,7 @@ export default function Header() {
   const toggleRunning = useSim((s) => s.toggleRunning)
   const setSpeed = useSim((s) => s.setSpeed)
   const reset = useSim((s) => s.reset)
+  const brandLine = useSim((s) => s.config.brandLine)
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -43,7 +44,7 @@ export default function Header() {
           <h1 className="text-sm font-semibold tracking-[0.14em] text-txt">
             AI EMPLOYEE MANAGEMENT DASHBOARD
           </h1>
-          <p className="text-[0.82rem] tracking-[0.22em] text-cyan">FINANCE OPERATIONS · TEAM ADVANTECH</p>
+          <p className="text-[0.82rem] tracking-[0.22em] text-cyan">{brandLine}</p>
         </div>
       </div>
 

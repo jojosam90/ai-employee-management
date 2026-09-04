@@ -84,15 +84,19 @@ export function buildDocuments(seed = 20260903): FinancialDoc[] {
     amount = Math.max(40, Math.round(amount))
     const day = 2 + Math.floor(rand() * 25)
     const mm = String(MONTH_NUM[mon]).padStart(2, '0')
+    const date = `${YEAR}-${mm}-${String(day).padStart(2, '0')}`
     return {
       id: `d${counter}`,
       ref: `${KIND_PREFIX[v.kind]}-${YEAR % 100}${mm}-${String(counter++).padStart(3, '0')}`,
       kind: v.kind,
       vendor: v.name,
+      title: v.name,
       category: v.category,
       amount,
-      date: `${YEAR}-${mm}-${String(day).padStart(2, '0')}`,
-      stage: 'queued',
+      date,
+      createdAt: date,
+      data: {},
+      stage: 'ingesting',
       progress: 0,
       issues: [],
       priority: v.kind === 'invoice' ? 2 : v.kind === 'claim' ? 1 : 0,
@@ -150,7 +154,7 @@ export function buildDocuments(seed = 20260903): FinancialDoc[] {
   // one duplicate payment so the risk / savings engine has something concrete
   const dupSrc = docs.find((d) => d.kind === 'invoice' && d.amount > 500) ?? docs[0]
   if (dupSrc) {
-    docs.push({ ...dupSrc, id: `d${counter++}`, ref: `${dupSrc.ref}-A`, issues: [], stage: 'queued', progress: 0 })
+    docs.push({ ...dupSrc, id: `d${counter++}`, ref: `${dupSrc.ref}-A`, issues: [], stage: 'ingesting', progress: 0 })
   }
 
   return shuffle(docs, rand)

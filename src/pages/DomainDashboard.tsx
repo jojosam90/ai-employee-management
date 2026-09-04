@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { useSim } from '@/engine/store'
+import { useAuth, type TeamId } from '@/auth/useAuth'
+import type { DomainConfig } from '@/domains/config'
 import Header from '@/components/Header'
 import AgentOverview from '@/components/AgentOverview'
 import WorkflowPipeline from '@/components/WorkflowPipeline'
@@ -10,15 +12,26 @@ import WorkSurface from '@/components/WorkSurface'
 
 const TICK_MS = 900
 
-export default function FinanceDashboard() {
-  const init = useSim((s) => s.init)
+export default function DomainDashboard({ config }: { config: DomainConfig }) {
+  const loadDomain = useSim((s) => s.loadDomain)
   const tick = useSim((s) => s.tick)
+  const activeId = useSim((s) => s.config.id)
+  const switchTeam = useAuth((s) => s.switchTeam)
+  const sessionTeam = useAuth((s) => s.session?.team)
 
   useEffect(() => {
-    init()
+    loadDomain(config)
+    if (sessionTeam && sessionTeam !== config.id) switchTeam(config.id as TeamId)
+  }, [loadDomain, config, sessionTeam, switchTeam])
+
+  useEffect(() => {
     const id = setInterval(tick, TICK_MS)
     return () => clearInterval(id)
-  }, [init, tick])
+  }, [tick])
+
+  if (activeId !== config.id) {
+    return <div className="grid min-h-screen place-items-center text-[0.9rem] text-dim">Loading workspace…</div>
+  }
 
   return (
     <div className="min-h-screen xl:h-screen xl:overflow-hidden">
@@ -32,7 +45,7 @@ export default function FinanceDashboard() {
 
           <div className="flex min-h-0 flex-col gap-3">
             <WorkflowPipeline />
-            <WorkSurface />
+            <WorkSurface key={config.id} />
           </div>
 
           <div className="flex min-h-0 flex-col gap-3">
@@ -43,7 +56,7 @@ export default function FinanceDashboard() {
         </div>
 
         <footer className="shrink-0 px-1 text-center text-[0.78rem] text-faint">
-          Finance-agent workspace · Local document processing · Zero cloud data leakage
+          AI agent workspace · Local processing · Zero cloud data leakage
         </footer>
       </div>
     </div>

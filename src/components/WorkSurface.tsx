@@ -2,14 +2,14 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { FileScan, FileBarChart, Download } from 'lucide-react'
 import { useSim } from '@/engine/store'
 import { Panel } from './ui'
-import ExtractionView from './ExtractionView'
-import { ReportView } from './ReportPanel'
 import { exportPdf } from '@/lib/reportPdf'
 import { cn } from '@/lib/cn'
+import type { Report } from '@/types'
 
 export default function WorkSurface() {
   const report = useSim((s) => s.report)
-  const [tab, setTab] = useState<'extract' | 'report'>('extract')
+  const config = useSim((s) => s.config)
+  const [tab, setTab] = useState<'detail' | 'report'>('detail')
   const autoSwitched = useRef(false)
 
   useEffect(() => {
@@ -19,6 +19,10 @@ export default function WorkSurface() {
     }
   }, [report])
 
+  const Detail = config.DetailView
+  const ReportBody = config.ReportView
+  const financeReport = config.id === 'finance' ? (report?.data as Report | undefined) : undefined
+
   return (
     <Panel
       title="Agent Workspace"
@@ -27,8 +31,8 @@ export default function WorkSurface() {
       bodyClass="p-0 flex flex-col min-h-0"
     >
       <div className="flex items-center gap-1 border-b border-edge-soft px-2 py-1.5">
-        <TabBtn active={tab === 'extract'} onClick={() => setTab('extract')} icon={<FileScan size={13} />}>
-          Live Extraction
+        <TabBtn active={tab === 'detail'} onClick={() => setTab('detail')} icon={<FileScan size={13} />}>
+          {config.labels.detailTab}
         </TabBtn>
         <TabBtn
           active={tab === 'report'}
@@ -36,11 +40,11 @@ export default function WorkSurface() {
           icon={<FileBarChart size={13} />}
           disabled={!report}
         >
-          Executive Report
+          {config.labels.reportTab}
         </TabBtn>
-        {report && (
+        {financeReport && (
           <button
-            onClick={() => void exportPdf(report)}
+            onClick={() => void exportPdf(financeReport)}
             className="ml-auto flex items-center gap-1 rounded-md bg-bg-2 px-2 py-1 text-[0.82rem] text-dim ring-1 ring-edge-soft hover:text-txt"
           >
             <Download size={12} /> PDF
@@ -48,7 +52,7 @@ export default function WorkSurface() {
         )}
       </div>
 
-      <div className="min-h-0 flex-1">{tab === 'extract' ? <ExtractionView /> : <ReportView />}</div>
+      <div className="min-h-0 flex-1">{tab === 'detail' ? <Detail /> : <ReportBody />}</div>
     </Panel>
   )
 }

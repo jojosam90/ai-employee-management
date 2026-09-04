@@ -1,29 +1,53 @@
 import { create } from 'zustand'
-import type { Agent, FinancialDoc, HealthPoint, LogEntry, LogLevel, Report, SimPhase } from '@/types'
-import { INITIAL_AGENTS, EXTRA_AGENTS, AGENT_NAME } from './agents'
-import { buildDocuments } from './seed'
-import { analyze } from './analysis'
+import type { Agent, HealthPoint, LogEntry, LogLevel, SimPhase } from '@/types'
+import type { DomainConfig, DomainReport, WorkItem } from '@/domains/config'
+import { EXTRA_AGENTS } from './agents'
 
 let uid = 0
 const nid = (p: string) => `${p}${Date.now().toString(36)}${(uid++).toString(36)}`
 
+const EMPTY_CONFIG: DomainConfig = {
+  id: '',
+  brandLine: '',
+  agents: [],
+  reportAgentId: '',
+  pipeline: [],
+  spotlightStageId: '',
+  generateItems: () => [],
+  buildReport: () => ({ generatedAt: 0, itemsAnalyzed: 0, summary: [], data: null }),
+  chips: [],
+  itemKinds: [],
+  labels: {
+    item: 'item',
+    items: 'items',
+    detailTab: 'Live View',
+    reportTab: 'Report',
+    doneStat: 'Done',
+    allDone: 'All items processed.',
+    summaryReady: () => 'Summary ready.',
+  },
+  DetailView: () => null,
+  ReportView: () => null,
+}
+
 interface SimState {
+  config: DomainConfig
   phase: SimPhase
   running: boolean
   speed: number
   tickCount: number
   startedAt: number
   reportProgress: number
-  /** The one document currently under the microscope in the extraction view. */
+  /** The one work item under the microscope in the detail view */
   spotlightId: string
 
-  docs: FinancialDoc[]
+  docs: WorkItem[]
   agents: Agent[]
   logs: LogEntry[]
   health: HealthPoint[]
-  report: Report | null
+  report: DomainReport | null
 
-  init: () => void
+  loadDomain: (config: DomainConfig) => void
   reset: () => void
   tick: () => void
   toggleRunning: () => void
@@ -39,26 +63,12 @@ function log(list: LogEntry[], agent: string, level: LogLevel, message: string):
   return [entry, ...list].slice(0, 160)
 }
 
-function pickDoc(docs: FinancialDoc[], predicate: (d: FinancialDoc) => boolean) {
-  return docs
-    .filter(predicate)
-    .sort((a, b) => b.priority - a.priority || a.date.localeCompare(b.date))[0]
-}
-
-const AVAILABLE: Record<string, (d: FinancialDoc) => boolean> = {
-  alpha: (d) => d.stage === 'queued',
-  beta: (d) => d.stage === 'extracting' && !d.assignedTo,
-  gamma: (d) => d.stage === 'validating' && !d.assignedTo,
-  // floating helpers pick up work at any pipeline stage
-  flex: (d) =>
-    d.stage === 'queued' || ((d.stage === 'extracting' || d.stage === 'validating') && !d.assignedTo),
-}
-
-function availableFor(agent: Agent) {
-  return AVAILABLE[agent.id] ?? (agent.stage === 'flex' ? AVAILABLE.flex : undefined)
+function pick(docs: WorkItem[], predicate: (d: WorkItem) => boolean) {
+  return docs.filter(predicate).sort((a, b) => b.priority - a.priority || a.createdAt.localeCompare(b.createdAt))[0]
 }
 
 export const useSim = create<SimState>((set, get) => ({
+  config: EMPTY_CONFIG,
   phase: 'idle',
   running: true,
   speed: 1,
@@ -68,17 +78,18 @@ export const useSim = create<SimState>((set, get) => ({
   spotlightId: '',
 
   docs: [],
-  agents: INITIAL_AGENTS.map((a) => ({ ...a })),
+  agents: [],
   logs: [],
   health: [],
   report: null,
 
-  init: () => {
-    if (get().phase !== 'idle') return
-    const docs = buildDocuments()
+  loadDomain: (config) => {
+    if (get().config.id === config.id && get().phase !== 'idle') return
+    const docs = config.generateItems()
     set({
+      config,
       docs,
-      agents: INITIAL_AGENTS.map((a) => ({ ...a })),
+      agents: config.agents.map((a) => ({ ...a })),
       phase: 'standby',
       startedAt: 0,
       tickCount: 0,
@@ -90,14 +101,15 @@ export const useSim = create<SimState>((set, get) => ({
         [],
         'system',
         'info',
-        `${docs.length} documents loaded. The team is on standby — send an instruction to begin.`,
+        `${docs.length} ${docs.length === 1 ? config.labels.item : config.labels.items} loaded. The team is on standby — send an instruction to begin.`,
       ),
     })
   },
 
   reset: () => {
+    const config = get().config
     set({ phase: 'idle' })
-    get().init()
+    get().loadDomain(config)
     set((s) => ({ logs: log(s.logs, 'system', 'warn', 'Pipeline reset — awaiting a new instruction.') }))
   },
 
@@ -107,7 +119,7 @@ export const useSim = create<SimState>((set, get) => ({
   pauseAgent: (id, paused) =>
     set((s) => ({
       agents: s.agents.map((a) => (a.id === id ? { ...a, status: paused ? 'paused' : 'idle' } : a)),
-      logs: log(s.logs, 'system', 'warn', `${AGENT_NAME[id] ?? id} ${paused ? 'paused' : 'resumed'}.`),
+      logs: log(s.logs, 'system', 'warn', `${agentName(s, id)} ${paused ? 'paused' : 'resumed'}.`),
     })),
 
   setAllPaused: (paused) =>
@@ -130,10 +142,11 @@ export const useSim = create<SimState>((set, get) => ({
       set({ logs: log(s.logs, 'system', 'info', 'All floating agents are already on the team.') })
       return
     }
-    const rest = s.agents.filter((a) => a.id !== 'delta')
-    const delta = s.agents.filter((a) => a.id === 'delta')
+    const rpt = s.config.reportAgentId
+    const rest = s.agents.filter((a) => a.id !== rpt)
+    const reporter = s.agents.filter((a) => a.id === rpt)
     set({
-      agents: [...rest, { ...next }, ...delta],
+      agents: [...rest, { ...next }, ...reporter],
       phase: s.phase === 'standby' ? 'running' : s.phase,
       startedAt: s.phase === 'standby' ? Date.now() : s.startedAt,
       logs: log(s.logs, 'system', 'success', `${next.name} added — picking up work across the pipeline.`),
@@ -144,6 +157,8 @@ export const useSim = create<SimState>((set, get) => ({
     const t = text.trim()
     if (!t) return
     const lower = t.toLowerCase()
+    const cfg = get().config
+    const rpt = cfg.reportAgentId
     set((s) => ({ logs: log(s.logs, 'boss', 'info', t) }))
 
     const start = () => {
@@ -152,12 +167,13 @@ export const useSim = create<SimState>((set, get) => ({
         set({
           phase: 'running',
           startedAt: Date.now(),
-          logs: log(get().logs, 'delta', 'success', 'Instruction received — processing has started.'),
+          logs: log(get().logs, rpt, 'success', 'Instruction received — processing has started.'),
         })
       }
     }
 
-    const agentMatch = lower.match(/\b(alpha|beta|gamma|delta|epsilon|zeta|all)\b/)
+    const agentIds = [...cfg.agents.map((a) => a.id), 'epsilon', 'zeta', 'all']
+    const agentMatch = lower.match(new RegExp(`\\b(${agentIds.join('|')})\\b`))
     if (/\b(pause|hold|stop)\b/.test(lower) && agentMatch) {
       if (agentMatch[1] === 'all') get().setAllPaused(true)
       else get().pauseAgent(agentMatch[1], true)
@@ -170,37 +186,37 @@ export const useSim = create<SimState>((set, get) => ({
       return
     }
 
-    const kindMatch = lower.match(/\b(invoice|receipt|claim|ledger|account|pdf)s?\b/)
-    if (/\b(priorit|expedite|rush|first)/.test(lower) && kindMatch) {
-      const kind = kindMatch[1].replace(/s$/, '')
-      set((s) => ({
-        docs: s.docs.map((d) => (d.kind.startsWith(kind) ? { ...d, priority: d.priority + 6 } : d)),
-        logs: log(s.logs, 'delta', 'success', `Acknowledged — ${kind} documents moved to the front of the queue.`),
-      }))
-      start()
-      return
+    if (cfg.itemKinds.length) {
+      const kindMatch = lower.match(new RegExp(`\\b(${cfg.itemKinds.join('|')})s?\\b`))
+      if (/\b(priorit|expedite|rush|first)/.test(lower) && kindMatch) {
+        const kind = kindMatch[1]
+        set((s) => ({
+          docs: s.docs.map((d) => (d.kind.startsWith(kind) ? { ...d, priority: d.priority + 6 } : d)),
+          logs: log(s.logs, rpt, 'success', `Acknowledged — ${kind} items moved to the front of the queue.`),
+        }))
+        start()
+        return
+      }
     }
 
-    const vendorMatch = t.match(/(?:vendor|supplier|focus on|for)\s+([A-Za-z][\w& ]{2,})/i)
-    if (vendorMatch) {
-      const v = vendorMatch[1].trim().toLowerCase()
-      const hit = get().docs.some((d) => d.vendor.toLowerCase().includes(v))
+    const focusMatch = t.match(/(?:vendor|supplier|focus on|for|about)\s+([A-Za-z][\w& -]{2,})/i)
+    if (focusMatch) {
+      const v = focusMatch[1].trim().toLowerCase()
+      const hit = get().docs.some((d) => d.title.toLowerCase().includes(v))
       set((s) => ({
-        docs: s.docs.map((d) => (d.vendor.toLowerCase().includes(v) ? { ...d, priority: d.priority + 6 } : d)),
+        docs: s.docs.map((d) => (d.title.toLowerCase().includes(v) ? { ...d, priority: d.priority + 6 } : d)),
         logs: log(
           s.logs,
-          'delta',
+          rpt,
           hit ? 'success' : 'warn',
-          hit
-            ? `Prioritising documents from "${vendorMatch[1].trim()}".`
-            : `No documents match "${vendorMatch[1].trim()}".`,
+          hit ? `Prioritising items matching "${focusMatch[1].trim()}".` : `Nothing matches "${focusMatch[1].trim()}".`,
         ),
       }))
       if (hit) start()
       return
     }
 
-    if (/\breallocat|rebalance|spread load|add (an )?agent|more agent/.test(lower)) {
+    if (/\breallocat|rebalance|spread load|add (an )?agent|more agent|more capacity/.test(lower)) {
       get().addAgent()
       start()
       return
@@ -211,12 +227,11 @@ export const useSim = create<SimState>((set, get) => ({
       return
     }
 
-    if (/\b(report|forecast|summary|save money|savings)\b/.test(lower)) {
+    if (/\b(report|summary|forecast|result|outcome)\b/.test(lower)) {
       const s = get()
-      if (s.phase === 'done') {
-        set({ logs: log(get().logs, 'delta', 'success', 'The executive summary and recommendations are ready below.') })
-      } else {
-        set({ logs: log(get().logs, 'delta', 'info', 'Understood — the summary will be ready once every document is processed.') })
+      if (s.phase === 'done') set({ logs: log(get().logs, rpt, 'success', 'The summary is ready below.') })
+      else {
+        set({ logs: log(get().logs, rpt, 'info', 'Understood — the summary follows once every item is processed.') })
         start()
       }
       return
@@ -227,7 +242,7 @@ export const useSim = create<SimState>((set, get) => ({
       return
     }
 
-    set((s) => ({ logs: log(s.logs, 'delta', 'info', 'Instruction logged.') }))
+    set((s) => ({ logs: log(s.logs, rpt, 'info', 'Instruction logged.') }))
     start()
   },
 
@@ -235,6 +250,15 @@ export const useSim = create<SimState>((set, get) => ({
     const s = get()
     if (s.phase !== 'running' && s.phase !== 'reporting') return
     if (!s.running) return
+
+    const cfg = s.config
+    const pipeline = cfg.pipeline
+    const stageIds = pipeline.map((p) => p.id)
+    const stageOf = (id: string) => pipeline.find((p) => p.id === id)
+    const nextStageId = (id: string) => {
+      const i = stageIds.indexOf(id)
+      return i >= 0 && i < stageIds.length - 1 ? stageIds[i + 1] : 'done'
+    }
 
     const docs = s.docs.map((d) => ({ ...d }))
     let agents = s.agents.map((a) => ({ ...a }))
@@ -244,14 +268,25 @@ export const useSim = create<SimState>((set, get) => ({
 
     const spotlightDone = () => {
       const sp = docs.find((d) => d.id === spotlightId)
-      return !sp || sp.stage === 'validated'
+      return !sp || sp.stage === 'done'
     }
 
-    // 0. self-heal any agent/document desync (pause/resume, edge cases)
+    const stagesForAgent = (agent: Agent) => {
+      if (agent.stage === 'flex') return stageIds
+      return pipeline.filter((p) => p.agentId === agent.id).map((p) => p.id)
+    }
+    const availableFor = (agent: Agent) => {
+      if (agent.stage === 'reporting') return undefined
+      const mine = stagesForAgent(agent)
+      if (!mine.length) return undefined
+      return (d: WorkItem) => mine.includes(d.stage) && !d.assignedTo
+    }
+
+    // 0. self-heal any agent/item desync (pause/resume, edge cases)
     for (const agent of agents) {
       if (!agent.currentDocId) continue
       const cd = docs.find((d) => d.id === agent.currentDocId)
-      const finished = !cd || cd.stage === 'validated'
+      const finished = !cd || cd.stage === 'done'
       const mismatch = cd && cd.assignedTo !== agent.id
       const stalled = agent.status !== 'processing' && agent.status !== 'paused'
       if (finished || mismatch || stalled) {
@@ -269,19 +304,17 @@ export const useSim = create<SimState>((set, get) => ({
       if (agent.currentDocId) continue
       const avail = availableFor(agent)
       if (!avail) continue
-      const doc = pickDoc(docs, avail)
+      const doc = pick(docs, avail)
       if (!doc) {
         agent.status = 'idle'
         continue
       }
       doc.assignedTo = agent.id
       doc.progress = 0
-      if (doc.stage === 'queued') doc.stage = 'ingesting'
-      const isExtract = doc.stage === 'extracting'
-      if (isExtract && doc.kind !== 'accounts' && spotlightDone()) spotlightId = doc.id
+      if (doc.stage === cfg.spotlightStageId && spotlightDone()) spotlightId = doc.id
       agent.currentDocId = doc.id
       agent.status = 'processing'
-      logs = log(logs, agent.id, 'info', `${verbFor(doc.stage)} ${doc.ref} — ${doc.vendor}`)
+      logs = log(logs, agent.id, 'info', `${stageOf(doc.stage)?.verb ?? 'Processing'} ${doc.ref} — ${doc.title}`)
     }
 
     // 2. progress current work
@@ -296,24 +329,22 @@ export const useSim = create<SimState>((set, get) => ({
       doc.progress = Math.min(100, doc.progress + step)
       if (doc.progress < 100) continue
 
+      const stage = stageOf(doc.stage)
       doc.progress = 0
       doc.assignedTo = undefined
       agent.currentDocId = undefined
       agent.status = 'idle'
       agent.processed += 1
+      agent.accuracy = Math.min(0.995, agent.accuracy + 0.001)
 
-      // the stage a document is in tells us which job just finished (works for
-      // the named stage agents and the floating helpers alike)
-      if (doc.stage === 'ingesting') {
-        doc.confidence = 0.85 + Math.random() * 0.15
-        doc.stage = 'extracting'
-      } else if (doc.stage === 'extracting') {
-        doc.confidence = 0.9 + Math.random() * 0.09
-        doc.stage = 'validating'
-      } else if (doc.stage === 'validating') {
-        doc.stage = 'validated'
-        agent.accuracy = Math.min(0.995, agent.accuracy + 0.001)
-        logs = log(logs, agent.id, 'success', `${doc.ref} reconciled and posted to the ledger.`)
+      if (stage) {
+        stage.onComplete?.(doc)
+        const done = nextStageId(doc.stage) === 'done'
+        const line = stage.completeLog
+          ? stage.completeLog(doc, done)
+          : `${doc.ref} ${done ? 'completed' : 'moved on'}.`
+        logs = log(logs, agent.id, done ? 'success' : 'info', line)
+        doc.stage = nextStageId(doc.stage)
       }
     }
 
@@ -321,8 +352,8 @@ export const useSim = create<SimState>((set, get) => ({
     const processedTotal = agents.reduce((a, x) => a + x.processed, 0)
     const prev = s.health.at(-1)
     const throughput = prev ? Math.max(0, processedTotal - (prev as HealthPoint & { _p?: number })._p!) : 0
-    const queueDepth = docs.filter((d) => d.stage !== 'validated').length
-    const accuracy = agents.reduce((a, x) => a + x.accuracy, 0) / agents.length
+    const queueDepth = docs.filter((d) => d.stage !== 'done').length
+    const accuracy = agents.reduce((a, x) => a + x.accuracy, 0) / Math.max(1, agents.length)
     const point = {
       t: s.tickCount,
       label: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -337,48 +368,29 @@ export const useSim = create<SimState>((set, get) => ({
     let phase: SimPhase = s.phase
     let report = s.report
     let reportProgress = s.reportProgress
-    const done = docs.every((d) => d.stage === 'validated')
+    const allDone = docs.length > 0 && docs.every((d) => d.stage === 'done')
 
-    if (done && phase === 'running') {
+    if (allDone && phase === 'running') {
       phase = 'reporting'
-      agents = agents.map((a) => (a.id === 'delta' ? { ...a, status: 'processing' } : { ...a, status: 'idle' }))
-      logs = log(logs, 'delta', 'info', 'All documents reconciled. Preparing the executive summary and recommendations…')
+      agents = agents.map((a) => (a.id === cfg.reportAgentId ? { ...a, status: 'processing' } : { ...a, status: 'idle' }))
+      logs = log(logs, cfg.reportAgentId, 'info', cfg.labels.allDone)
     }
     if (phase === 'reporting') {
       reportProgress = Math.min(100, reportProgress + (18 + Math.random() * 14) * speed)
       if (reportProgress >= 100) {
-        report = analyze(docs)
+        report = cfg.buildReport(docs)
         phase = 'done'
         agents = agents.map((a) =>
-          a.id === 'delta' ? { ...a, status: 'idle', processed: a.processed + 1 } : { ...a, status: 'idle' },
+          a.id === cfg.reportAgentId ? { ...a, status: 'idle', processed: a.processed + 1 } : { ...a, status: 'idle' },
         )
-        logs = log(
-          logs,
-          'delta',
-          'success',
-          `Executive summary ready — S$${Math.round(report.totalSpend).toLocaleString()} of spend analysed.`,
-        )
+        logs = log(logs, cfg.reportAgentId, 'success', cfg.labels.summaryReady(report))
       }
     }
 
-    set({
-      docs,
-      agents,
-      logs,
-      health,
-      phase,
-      report,
-      reportProgress,
-      spotlightId,
-      tickCount: s.tickCount + 1,
-    })
+    set({ docs, agents, logs, health, phase, report, reportProgress, spotlightId, tickCount: s.tickCount + 1 })
   },
 }))
 
-function verbFor(stage: string) {
-  return stage === 'ingesting' || stage === 'queued'
-    ? 'Ingesting'
-    : stage === 'extracting'
-      ? 'Extracting fields from'
-      : 'Reconciling'
+function agentName(s: SimState, id: string) {
+  return s.config.agents.find((a) => a.id === id)?.name ?? EXTRA_AGENTS.find((a) => a.id === id)?.name ?? id
 }

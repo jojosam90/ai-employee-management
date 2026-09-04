@@ -7,7 +7,11 @@ export default function AgentOverview() {
   const agents = useSim((s) => s.agents)
   const docs = useSim((s) => s.docs)
   const phase = useSim((s) => s.phase)
+  const pipeline = useSim((s) => s.config.pipeline)
+  const itemWord = useSim((s) => s.config.labels.item)
   const pauseAgent = useSim((s) => s.pauseAgent)
+
+  const stagesFor = (id: string) => pipeline.filter((p) => p.agentId === id).map((p) => p.id)
 
   return (
     <Panel
@@ -18,15 +22,8 @@ export default function AgentOverview() {
     >
       {agents.map((a) => {
         const current = docs.find((d) => d.id === a.currentDocId)
-        const queue = docs.filter((d) =>
-          a.id === 'alpha'
-            ? d.stage === 'queued'
-            : a.id === 'beta'
-              ? d.stage === 'extracting'
-              : a.id === 'gamma'
-                ? d.stage === 'validating'
-                : false,
-        ).length
+        const mine = stagesFor(a.id)
+        const queue = docs.filter((d) => mine.includes(d.stage) && !d.assignedTo).length
         return (
           <div
             key={a.id}
@@ -60,18 +57,18 @@ export default function AgentOverview() {
             <p className="mt-1.5 truncate text-[0.86rem] text-txt/80">
               {a.stage === 'reporting'
                 ? a.status === 'processing'
-                  ? 'Writing the executive summary…'
+                  ? 'Writing the summary…'
                   : phase === 'done'
                     ? 'Summary compiled — ready for review'
-                    : 'Awaiting the reconciled ledger'
+                    : 'Awaiting the processed queue'
                 : phase === 'standby'
                   ? 'On standby — awaiting instruction'
                   : current
-                    ? `${current.ref} · ${current.vendor}`
+                    ? `${current.ref} · ${current.title}`
                     : a.stage === 'flex'
                       ? 'Floating — assists any stage'
                       : queue > 0
-                        ? `${queue} document${queue > 1 ? 's' : ''} in queue`
+                        ? `${queue} ${itemWord}${queue > 1 ? 's' : ''} in queue`
                         : 'Idle — queue clear'}
             </p>
 

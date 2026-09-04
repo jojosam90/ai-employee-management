@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Radio, Search } from 'lucide-react'
 import { useSim } from '@/engine/store'
-import { AGENT_NAME } from '@/engine/agents'
+import { EXTRA_AGENTS } from '@/engine/agents'
 import { Panel } from './ui'
 import { cn } from '@/lib/cn'
 
@@ -11,26 +11,33 @@ const LEVEL_TONE: Record<string, string> = {
   warn: 'text-amber',
   error: 'text-red',
 }
-const AGENT_TONE: Record<string, string> = {
-  alpha: 'text-cyan',
-  beta: 'text-violet',
-  gamma: 'text-teal',
-  delta: 'text-blue',
-  system: 'text-faint',
-  boss: 'text-amber',
-}
+const TONES = ['text-cyan', 'text-violet', 'text-teal', 'text-blue', 'text-amber']
+const FIXED_TONE: Record<string, string> = { system: 'text-faint', boss: 'text-amber' }
 
 export default function CommunicationsLog() {
   const logs = useSim((s) => s.logs)
+  const agents = useSim((s) => s.config.agents)
   const [q, setQ] = useState('')
+
+  const nameOf = (id: string) =>
+    agents.find((a) => a.id === id)?.name ??
+    EXTRA_AGENTS.find((a) => a.id === id)?.name ??
+    (id === 'system' ? 'System' : id === 'boss' ? 'You' : id)
+
+  const toneOf = (id: string) => {
+    if (FIXED_TONE[id]) return FIXED_TONE[id]
+    const i = [...agents, ...EXTRA_AGENTS].findIndex((a) => a.id === id)
+    return i >= 0 ? TONES[i % TONES.length] : 'text-dim'
+  }
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
     if (!needle) return logs
     return logs.filter(
-      (l) => l.message.toLowerCase().includes(needle) || (AGENT_NAME[l.agent] ?? l.agent).toLowerCase().includes(needle),
+      (l) => l.message.toLowerCase().includes(needle) || nameOf(l.agent).toLowerCase().includes(needle),
     )
-  }, [logs, q])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logs, q, agents])
 
   return (
     <Panel
@@ -53,9 +60,7 @@ export default function CommunicationsLog() {
         {filtered.map((l) => (
           <div key={l.id} className="rounded border border-edge-soft/60 bg-white/[0.015] px-2 py-1.5 text-[0.86rem] leading-snug">
             <div className="flex items-center gap-1.5">
-              <span className={cn('font-semibold', AGENT_TONE[l.agent] ?? 'text-dim')}>
-                {AGENT_NAME[l.agent] ?? l.agent}
-              </span>
+              <span className={cn('font-semibold', toneOf(l.agent))}>{nameOf(l.agent)}</span>
               <span className="ml-auto tabular-nums text-[0.76rem] text-faint">
                 {new Date(l.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>

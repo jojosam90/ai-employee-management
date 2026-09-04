@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type TeamId = 'product' | 'finance' | 'sales' | 'engineering'
+export type TeamId = 'product' | 'finance' | 'sales' | 'engineering' | 'itsupport' | 'hr'
 
 export interface TeamMeta {
   id: TeamId
@@ -15,6 +15,8 @@ export const TEAMS: TeamMeta[] = [
   { id: 'finance', label: 'Finance Team', tagline: 'Document processing, forecast & risk', ready: true },
   { id: 'sales', label: 'Sales Team', tagline: 'Pipeline, quota & deal-desk agents', ready: false },
   { id: 'engineering', label: 'Engineering Team', tagline: 'Delivery, incident & review agents', ready: false },
+  { id: 'itsupport', label: 'IT Support Team', tagline: 'L1 / L2 / L3 incident & problem resolution', ready: true },
+  { id: 'hr', label: 'HR Team', tagline: 'Résumé screening, interview & candidate ranking', ready: true },
 ]
 
 export function teamMeta(id: TeamId): TeamMeta {

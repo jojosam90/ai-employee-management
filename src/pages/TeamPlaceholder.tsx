@@ -3,16 +3,15 @@ import { Link } from 'react-router-dom'
 import { teamMeta, type TeamId } from '@/auth/useAuth'
 import SessionControls from '@/components/SessionControls'
 
-const PLANNED: Record<TeamId, string[]> = {
+const PLANNED: Partial<Record<TeamId, string[]>> = {
   product: ['Discovery & feedback triage agent', 'Release-notes drafting agent', 'Roadmap risk & dependency agent', 'Experiment readout agent'],
   sales: ['Pipeline hygiene agent', 'Quote & deal-desk agent', 'Forecast roll-up agent', 'Churn-risk watch agent'],
   engineering: ['PR review & merge-readiness agent', 'Incident summary agent', 'Delivery / sprint burn agent', 'Dependency & CVE agent'],
-  finance: [],
 }
 
 export default function TeamPlaceholder({ team }: { team: TeamId }) {
   const meta = teamMeta(team)
-  const planned = PLANNED[team]
+  const planned = PLANNED[team] ?? []
 
   return (
     <div className="min-h-screen">

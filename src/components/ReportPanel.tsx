@@ -31,7 +31,7 @@ const CAT_COLORS = [
 ]
 
 export function ReportView() {
-  const report = useSim((s) => s.report)
+  const report = (useSim((s) => s.report)?.data as Report | undefined) ?? null
   const phase = useSim((s) => s.phase)
   const reportProgress = useSim((s) => s.reportProgress)
   const [tab, setTab] = useState<Tab>('Summary')

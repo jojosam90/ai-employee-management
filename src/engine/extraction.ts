@@ -201,20 +201,16 @@ export function extractDoc(doc: FinancialDoc): Extraction {
 /** How far through the on-screen extraction animation the spotlight document is (0..1). */
 export function revealFraction(stage: string, progress: number): number {
   const base: Record<string, number> = {
-    queued: 0,
     ingesting: 0.1,
     extracting: 0.32,
     validating: 0.82,
-    validated: 1,
-    flagged: 1,
+    done: 1,
   }
   const span: Record<string, number> = {
-    queued: 0.1,
     ingesting: 0.22,
     extracting: 0.5,
     validating: 0.18,
-    validated: 0,
-    flagged: 0,
+    done: 0,
   }
   const b = base[stage] ?? 0
   const s = span[stage] ?? 0

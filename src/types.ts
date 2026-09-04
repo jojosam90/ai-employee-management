@@ -16,22 +16,16 @@ export type Category =
   | 'Professional Fees'
   | 'Utilities'
 
-export type DocStage = 'queued' | 'ingesting' | 'extracting' | 'validating' | 'validated'
+import type { WorkItem } from '@/domains/config'
 
-export interface FinancialDoc {
-  id: string
-  ref: string
+export interface FinancialDoc extends WorkItem {
   kind: DocKind
   vendor: string
   category: Category
   amount: number
   date: string // ISO yyyy-mm-dd
-  stage: DocStage
-  progress: number // 0..100 within current stage
-  assignedTo?: string // agent id
   confidence?: number // 0..1 after extraction
   issues: string[]
-  priority: number // higher = processed sooner
 }
 
 export type AgentStatus = 'idle' | 'processing' | 'paused'
@@ -40,7 +34,8 @@ export interface Agent {
   id: string
   name: string
   role: string
-  stage: Exclude<DocStage, 'queued' | 'validated'> | 'reporting' | 'flex'
+  /** pipeline stage id serviced, or 'reporting' / 'flex' */
+  stage: string
   avatar: number
   status: AgentStatus
   currentDocId?: string

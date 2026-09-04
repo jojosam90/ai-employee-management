@@ -4,6 +4,7 @@ import { useSim } from '@/engine/store'
 import { extractDoc, revealFraction, vendorMeta, dmy, type Extraction, type VendorMeta } from '@/engine/extraction'
 import { cn, money, money2 } from '@/lib/cn'
 import { StatusDot } from './ui'
+import type { FinancialDoc } from '@/types'
 
 interface Caps {
   vendor: boolean
@@ -21,20 +22,19 @@ const READ_BOX = 'bg-[#5ea3a3]/30 [outline:1.5px_solid_#3f8080] [outline-offset:
 const totalBox = (show: boolean) => (show ? CAP_BOX + ' rounded-[2px]' : '')
 
 const STAGE_LABEL: Record<string, string> = {
-  queued: 'Queued for OCR',
   ingesting: 'Scanning & OCR',
   extracting: 'Extracting fields',
   validating: 'Reconciling totals',
-  validated: 'Reconciled · posted to ledger',
+  done: 'Reconciled · posted to ledger',
 }
 
 export default function ExtractionView() {
-  const docs = useSim((s) => s.docs)
+  const docs = useSim((s) => s.docs) as FinancialDoc[]
   const spotlightId = useSim((s) => s.spotlightId)
   const phase = useSim((s) => s.phase)
 
   const doc = docs.find((d) => d.id === spotlightId)
-  const posted = docs.filter((d) => d.stage === 'validated')
+  const posted = docs.filter((d) => d.stage === 'done')
   const postedTotal = posted.reduce((a, d) => a + d.amount, 0)
 
   if (!doc) {

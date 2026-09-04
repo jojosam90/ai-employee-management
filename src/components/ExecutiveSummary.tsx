@@ -7,8 +7,9 @@ export default function ExecutiveSummary() {
   const phase = useSim((s) => s.phase)
   const docs = useSim((s) => s.docs)
   const reportProgress = useSim((s) => s.reportProgress)
+  const items = useSim((s) => s.config.labels.items)
 
-  const validated = docs.filter((d) => d.stage === 'validated').length
+  const done = docs.filter((d) => d.stage === 'done').length
 
   return (
     <Panel
@@ -23,8 +24,8 @@ export default function ExecutiveSummary() {
             {phase === 'standby'
               ? 'The team is on standby. Send an instruction to begin — the summary for the boss will appear here.'
               : phase === 'reporting'
-                ? `Agent Delta is writing the summary… ${Math.round(reportProgress)}%`
-                : `Processing — ${validated} of ${docs.length} documents reconciled. The executive summary follows.`}
+                ? `The reporting agent is writing the summary… ${Math.round(reportProgress)}%`
+                : `Processing — ${done} of ${docs.length} ${items} done. The executive summary follows.`}
           </p>
         </div>
       ) : (
