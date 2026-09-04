@@ -13,3 +13,5 @@ dist-ssr
 # local working artefacts
 preview-*.png
 vite-dev.log
+
+.vercel
