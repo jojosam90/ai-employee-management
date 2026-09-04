@@ -1,6 +1,10 @@
-import { Workflow } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Workflow, ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
 import { useSim } from '@/engine/store'
+import { cn } from '@/lib/cn'
 import { Panel, Avatar } from './ui'
+
+const COLLAPSE_KEY = 'ade-pipeline-collapsed'
 
 function MiniRing({
   progress,
@@ -57,6 +61,21 @@ function Connector({ flowing }: { flowing: boolean }) {
 }
 
 export default function WorkflowPipeline() {
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(COLLAPSE_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+  }, [collapsed])
+
   const allAgents = useSim((s) => s.agents)
   const docs = useSim((s) => s.docs)
   const phase = useSim((s) => s.phase)
@@ -92,7 +111,31 @@ export default function WorkflowPipeline() {
   ]
 
   return (
-    <Panel title="Current Workflow Pipeline" icon={<Workflow size={14} />} className="shrink-0" bodyClass="p-3 flex flex-col gap-2">
+    <Panel
+      title="Current Workflow Pipeline"
+      icon={<Workflow size={14} />}
+      className="shrink-0"
+      bodyClass={cn('p-3 flex flex-col gap-2', collapsed && 'hidden')}
+      right={
+        <div className="flex items-center gap-2">
+          {collapsed && (
+            <span className="hidden text-[0.74rem] text-dim sm:inline">
+              {config.labels.doneStat} <b className="tabular-nums text-teal">{done}</b> · In progress{' '}
+              <b className="tabular-nums text-txt">{inFlight}</b>
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? 'Expand workflow pipeline' : 'Minimise workflow pipeline'}
+            title={collapsed ? 'Expand' : 'Minimise'}
+            className="flex items-center rounded-md px-1.5 py-1 text-dim ring-1 ring-edge-soft transition hover:text-txt hover:ring-cyan/40"
+          >
+            {collapsed ? <ChevronsUpDown size={13} /> : <ChevronsDownUp size={13} />}
+          </button>
+        </div>
+      }
+    >
       <div className="flex items-start justify-between">
         {nodes.map((n, i) => {
           if (!n.agent) return null
