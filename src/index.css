@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+  /* Calm slate base — warmer and softer than the earlier neon look */
+  --color-bg: #12161c;
+  --color-bg-2: #171c24;
+  --color-panel: #1b212a;
+  --color-panel-2: #222a34;
+  --color-edge: #333d49;
+  --color-edge-soft: #2a323d;
+
+  /* One muted teal accent, with quiet supporting hues */
+  --color-cyan: #6db4b4;
+  --color-cyan-dim: #4f8f8f;
+  --color-teal: #74bfa8;
+  --color-blue: #7d9dc4;
+  --color-amber: #d3a56b;
+  --color-red: #cf8a8a;
+  --color-violet: #9c96c0;
+
+  --color-txt: #d6dbe0;
+  --color-dim: #8a949f;
+  --color-faint: #5c6670;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+@media (min-width: 1280px) {
+  html { font-size: 17px; }
+}
+@media (min-width: 1536px) {
+  html { font-size: 18px; }
+}
+@media (min-width: 1920px) {
+  html { font-size: 19px; }
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(180deg, #151a21 0%, var(--color-bg) 60%);
+  color: var(--color-txt);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(116, 191, 168, 0.22); }
+  70% { box-shadow: 0 0 0 6px rgba(116, 191, 168, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(116, 191, 168, 0); }
+}
+@keyframes flow-dash {
+  to { stroke-dashoffset: -24; }
+}
+@keyframes scan-sweep {
+  0% { transform: translateY(-10%); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(1100%); opacity: 0; }
+}
+@keyframes cell-pop {
+  from { background-color: rgba(109, 180, 180, 0.22); }
+  to { background-color: transparent; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-edge-soft);
+  border-radius: 0.7rem;
+}
+.panel-title {
+  font-size: 0.8rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-teal);
+  font-weight: 600;
+}
+
+.scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--color-edge); border-radius: 3px; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
